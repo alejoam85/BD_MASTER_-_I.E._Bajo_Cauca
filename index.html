@@ -1,0 +1,585 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Visor BD_MASTER - I.E. Bajo Cauca</title>
+
+  <!-- Estilos simples y responsive -->
+  <style>
+    :root{--bg:#f6f8fb;--card:#fff;--muted:#6b7280;--accent:#0b5cff}
+    body{font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; margin:16px; background:var(--bg); color:#111}
+    header{display:flex;align-items:center;gap:14px;margin-bottom:10px}
+    h1{font-size:18px;margin:0}
+    .container{display:grid;grid-template-columns:360px 1fr;gap:12px}
+    .card{background:var(--card);padding:12px;border-radius:8px;box-shadow:0 6px 18px rgba(20,24,40,0.06)}
+    .small{font-size:13px;color:var(--muted)}
+    /* Controls */
+    .control-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
+    input[type="search"], select, button{padding:8px 10px;border-radius:6px;border:1px solid #e6e9ef;background:#fff}
+    input[type="search"]{min-width:240px}
+    button.primary{background:var(--accent);color:#fff;border:none;cursor:pointer}
+    button.link{background:transparent;border:1px solid #e6e9ef}
+    /* Table */
+    #tabla-wrapper{overflow:auto}
+    table{border-collapse:collapse;width:100%;min-width:900px}
+    thead th{background:#f1f4f9;padding:8px;text-align:left;border-bottom:2px solid #edf0f6;font-weight:700}
+    tbody td{padding:8px;border-bottom:1px solid #f4f6fa}
+    tbody tr:hover{background:#fbfdff;cursor:pointer}
+    /* Suggestions */
+    .suggestions{position:relative}
+    .suggest-list{position:absolute;background:#fff;border:1px solid #e6e9ef;width:350px;max-height:220px;overflow:auto;z-index:40;border-radius:6px;margin-top:6px;box-shadow:0 8px 20px rgba(10,20,40,0.06)}
+    .suggest-item{padding:8px;border-bottom:1px solid #f3f5f8}
+    .suggest-item strong{display:block}
+    /* Stats */
+    .kpi{display:flex;justify-content:space-between;gap:8px;padding:8px;border-radius:6px;background:#fbfbff}
+    .kpi .title{font-size:13px;color:var(--muted)}
+    .kpi .value{font-weight:700;font-size:18px}
+    /* Modal */
+    .modal-back{position:fixed;inset:0;background:rgba(5,10,20,0.5);display:none;align-items:center;justify-content:center;z-index:80}
+    .modal{background:#fff;padding:16px;border-radius:8px;max-width:900px;width:95%;max-height:85vh;overflow:auto}
+    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    /* Responsive */
+    @media (max-width:960px){ .container{grid-template-columns:1fr} table{min-width:720px} .suggest-list{width:90vw} }
+  </style>
+
+  <!-- PapaParse para leer CSV -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+  <!-- Chart.js para gráficos -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <header>
+    <div style="width:56px;height:56px;border-radius:10px;background:linear-gradient(135deg,#0b5cff,#4ea8ff);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700">BD</div>
+    <div>
+      <h1>Visor — BD_MASTER de Instituciones (I.E. Bajo Cauca)</h1>
+      <div class="small">Fuente: Google Sheets (CSV público) • Vista de consulta</div>
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- LATERAL: Controles y KPIs -->
+    <aside class="card">
+      <div class="small" style="margin-bottom:8px">Búsqueda inteligente</div>
+      <div class="control-row suggestions">
+        <input id="search" type="search" placeholder="Escribe (min. 2 caracteres)..." aria-label="Búsqueda" />
+        <button id="clearSearch" class="link">Limpiar</button>
+        <div id="suggestions" class="suggest-list" style="display:none"></div>
+      </div>
+
+      <hr style="margin:10px 0;border:none;border-top:1px solid #f1f4f9" />
+
+      <div class="small" style="margin-bottom:6px">Filtros rápidos</div>
+      <div class="control-row" style="flex-direction:column;align-items:stretch">
+        <label class="small">Municipio</label>
+        <select id="filterMunicipio"><option value="">— Todos —</option></select>
+
+        <label class="small" style="margin-top:8px">Institución</label>
+        <select id="filterInstitucion"><option value="">— Todas —</option></select>
+
+        <label class="small" style="margin-top:8px">Conectividad</label>
+        <select id="filterConectividad"><option value="">— Cualquiera —</option><option value="SI">SI</option><option value="NO">NO</option></select>
+
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button id="btnAplicar" class="primary">Aplicar filtros</button>
+          <button id="btnReset" class="link">Reset</button>
+        </div>
+      </div>
+
+      <hr style="margin:10px 0;border:none;border-top:1px solid #f1f4f9" />
+
+      <div class="small" style="margin-bottom:6px">KPIs</div>
+      <div style="display:grid;gap:8px">
+        <div class="kpi"><div><div class="title">Total (suma) — Total General</div><div id="kpiTotalGeneral" class="value">—</div></div></div>
+        <div class="kpi"><div><div class="title">Total Docentes (2024)</div><div id="kpiDocentes2024" class="value">—</div></div></div>
+        <div class="kpi"><div><div class="title">Sedes (total)</div><div id="kpiSedes" class="value">—</div></div></div>
+        <div class="kpi"><div><div class="title">Conectividad (%-SI)</div><div id="kpiConect" class="value">—</div></div></div>
+      </div>
+
+      <hr style="margin:10px 0;border:none;border-top:1px solid #f1f4f9" />
+
+      <div class="small">Sedes por municipio (top 10)</div>
+      <canvas id="chartSedes" style="width:100%;height:180px;margin-top:8px"></canvas>
+
+      <div style="margin-top:12px" class="small">Opciones</div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button id="btnReload" class="link">Recargar datos</button>
+        <button id="btnShowAllCols" class="link">Mostrar columnas</button>
+      </div>
+    </aside>
+
+    <!-- CENTRAL: Tabla y vista -->
+    <main>
+      <div class="card" style="margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div class="small">Vista de tabla • mostrando <span id="visibleCount">—</span> resultados</div>
+            <div id="activeFilters" class="small" style="margin-top:6px;color:var(--muted)"></div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <label class="small">Mostrar</label>
+            <select id="pageSize"><option value="10">10</option><option value="25">25</option><option value="50">50</option></select>
+          </div>
+        </div>
+
+        <div id="tabla-wrapper" style="margin-top:10px">
+          <div id="loading" class="small">Cargando datos…</div>
+          <table id="tabla" style="display:none" aria-describedby="tabla-datos">
+            <!-- generada por JS -->
+          </table>
+          <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
+            <button id="btnMore" class="primary" style="display:none">Mostrar más</button>
+            <div id="endInfo" class="small" style="color:var(--muted)"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="previewCard" class="card small" style="display:none;margin-top:8px"></div>
+    </main>
+  </div>
+
+  <!-- Modal detalle -->
+  <div id="modalBack" class="modal-back">
+    <div class="modal">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h3 id="modalTitle" style="margin:0">Detalle de la sede</h3>
+        <button id="closeModal" class="link">Cerrar</button>
+      </div>
+      <div id="modalBody" style="margin-top:10px"></div>
+    </div>
+  </div>
+
+<script>
+/*
+  Configuración: sustituye CSV_URL si deseas cambiar
+  (esta URL es la que nos proporcionaste y está publicada)
+*/
+const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRe5o92LzVVZNSuqn2eUpGf3t1nr_rf58V37ypPjGldYnxNg1B9XTrtZCvNSU-VTKdszHXD9WeqE8sk/pub?gid=1700850446&single=true&output=csv";
+
+/* Estado */
+let rawRows = [];       // filas crudas (array de arrays)
+let headers = [];       // encabezados originales (limpios)
+let rows = [];          // filas como objetos {header: value}
+let filtered = [];      // filas después de filtros/búsqueda
+let displayedCount = 0; // cuántas filas se han mostrado
+let pageSize = 10;
+
+/* Utilidades para normalizar encabezados */
+
+/**
+ * Intenta reparar mojibake (texto mal decodificado) usando decodeURIComponent(escape(...))
+ * Si falla, retorna original.
+ */
+function fixEncoding(s){
+  if(!s) return s;
+  try{ return decodeURIComponent(escape(s)); }
+  catch(e){ return s; }
+}
+
+/**
+ * Normaliza nombres: repara encoding, elimina diacríticos, trim, reemplaza espacios por _
+ * y elimina caracteres inválidos para keys.
+ * Retorna una versión "visible" (espacios) y una "key" (sin espacios).
+ */
+function normalizeHeader(raw){
+  let fixed = fixEncoding(raw + "");
+  // remove control characters
+  fixed = fixed.replace(/[\u0000-\u001F]+/g,'').trim();
+  // NFC then remove diacritics
+  let noAccents = fixed.normalize('NFD').replace(/\p{Diacritic}/gu, "");
+  // Replace weird characters like multiple spaces, non-word
+  let visible = noAccents.replace(/\s+/g,' ').trim();
+  // key: uppercase, replace spaces and punctuation with _
+  let key = visible.toUpperCase().replace(/[^A-Z0-9]+/g,'_').replace(/^_|_$/g,'');
+  return {visible, key};
+}
+
+/* Detecta índices de columnas clave (MUNICIPIO, TOTAL_GENERAL, DOCENTES, CONECTIVIDAD, 2024 Docentes) */
+function findColumnCandidates(hdrs){
+  const findKey = q => {
+    const qnorm = q.toUpperCase();
+    for(let i=0;i<hdrs.length;i++){
+      if(hdrs[i].visible.toUpperCase() === qnorm) return i;
+    }
+    // fallback: includes
+    for(let i=0;i<hdrs.length;i++){
+      if(hdrs[i].visible.toUpperCase().includes(qnorm)) return i;
+    }
+    return -1;
+  };
+
+  const idx = {};
+  idx.municipio = findKey('MUNICIPIO');
+  idx.total_general = findKey('TOTAL GENERAL') !== -1 ? findKey('TOTAL GENERAL') : findKey('TOTAL_GENERAL') ;
+  idx.docentes_2024 = findKey('2024 DOCENTES') !== -1 ? findKey('2024 DOCENTES') : findKey('2024_DOCENTES');
+  idx.docentes_qty = findKey('DOCENTES (CANTIDAD)') !== -1 ? findKey('DOCENTES (CANTIDAD)') : findKey('DOCENTES');
+  idx.conectividad = findKey('CONECTIVIDAD');
+  idx.institucion = findKey('INSTITUCION') !== -1 ? findKey('INSTITUCION') : findKey('INSTITUCIÓN') ;
+  return idx;
+}
+
+/* --- Carga y parseo CSV --- */
+function loadCSV(){
+  document.getElementById('loading').textContent = 'Cargando CSV desde Google Sheets…';
+  Papa.parse(CSV_URL, {
+    download: true,
+    skipEmptyLines: false,
+    complete: function(results) {
+      // results.data: array of arrays
+      rawRows = results.data.map(r => r.map(c => c === undefined ? '' : String(c)));
+      // quitar filas vacías al final
+      while(rawRows.length && rawRows[rawRows.length-1].every(x=>x.trim()==='')) rawRows.pop();
+
+      if(rawRows.length < 3){
+        document.getElementById('loading').textContent = 'Error: el CSV no tiene suficientes filas (se esperaban al menos 3 filas de cabecera).';
+        return;
+      }
+      // Tomamos la fila 3 (index 2) como la cabecera real
+      let headerRow = rawRows[2];
+      headers = headerRow.map(h => normalizeHeader(h || ''));
+      // Convertir filas restantes en objeto por header.key / visible
+      rows = rawRows.slice(3).map(r => {
+        const obj = {};
+        for(let i=0;i<headers.length;i++){
+          const key = headers[i].visible || `C${i}`;
+          obj[key] = r[i] === undefined ? '' : r[i];
+        }
+        return obj;
+      });
+
+      // Filtrado inicial = todas las filas
+      filtered = rows.slice();
+      // Inicializa UI
+      initUI();
+      renderStatsAndChart();
+      renderTableReset();
+    },
+    error: function(err){
+      document.getElementById('loading').textContent = 'Error al cargar CSV: ' + (err && err.message ? err.message : JSON.stringify(err));
+    }
+  });
+}
+
+/* --- UI inicial --- */
+function initUI(){
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('tabla').style.display = '';
+  document.getElementById('visibleCount').textContent = filtered.length;
+
+  // Detectar columnas claves
+  const idx = findColumnCandidates(headers);
+  window._colIdx = idx; // para debug
+
+  // Poblar selects de filtros con valores únicos
+  const municipioSet = new Set();
+  const institSet = new Set();
+  rows.forEach(r => {
+    const m = r[headers[idx.municipio]?.visible] || '';
+    const inst = r[headers[idx.institucion]?.visible] || '';
+    if(m && m.trim()!=='') municipioSet.add(m.trim());
+    if(inst && inst.trim()!=='') institSet.add(inst.trim());
+  });
+
+  const selM = document.getElementById('filterMunicipio');
+  Array.from(municipioSet).sort((a,b)=>a.localeCompare(b)).forEach(m => {
+    const opt = document.createElement('option'); opt.value = m; opt.textContent = m; selM.appendChild(opt);
+  });
+  const selI = document.getElementById('filterInstitucion');
+  Array.from(institSet).sort((a,b)=>a.localeCompare(b)).forEach(x => {
+    const opt = document.createElement('option'); opt.value = x; opt.textContent = x; selI.appendChild(opt);
+  });
+
+  // Eventos
+  document.getElementById('btnReload').addEventListener('click', ()=> { location.reload(); });
+  document.getElementById('btnReset').addEventListener('click', ()=> {
+    document.getElementById('filterMunicipio').value = '';
+    document.getElementById('filterInstitucion').value = '';
+    document.getElementById('filterConectividad').value = '';
+    document.getElementById('search').value = '';
+    filtered = rows.slice();
+    renderTableReset();
+    renderStatsAndChart();
+  });
+
+  document.getElementById('btnAplicar').addEventListener('click', ()=> {
+    applyFilters();
+  });
+
+  document.getElementById('pageSize').addEventListener('change', (e) => {
+    pageSize = parseInt(e.target.value,10) || 10;
+    renderTableReset();
+  });
+
+  // Buscar predictiva
+  const searchInput = document.getElementById('search');
+  const sugg = document.getElementById('suggestions');
+  const clearSearch = document.getElementById('clearSearch');
+  searchInput.addEventListener('input', (e) => {
+    const q = e.target.value.trim();
+    if(q.length >= 2){
+      const list = getTopMatches(q, 5);
+      renderSuggestions(list);
+    } else {
+      sugg.style.display = 'none';
+    }
+  });
+  clearSearch.addEventListener('click', ()=> {
+    searchInput.value = ''; document.getElementById('suggestions').style.display = 'none';
+    filtered = rows.slice(); renderTableReset(); renderStatsAndChart();
+  });
+
+  // Mostrar columnas (lista)
+  document.getElementById('btnShowAllCols').addEventListener('click', ()=> {
+    alert('Columnas detectadas:\\n\\n' + headers.map(h => h.visible).join('\\n'));
+  });
+
+  // More button
+  document.getElementById('btnMore').addEventListener('click', ()=> {
+    renderMore();
+  });
+
+  // Modal close
+  document.getElementById('closeModal').addEventListener('click', ()=> {
+    document.getElementById('modalBack').style.display='none';
+  });
+  document.getElementById('modalBack').addEventListener('click', (ev)=> {
+    if(ev.target === document.getElementById('modalBack')) document.getElementById('modalBack').style.display='none';
+  });
+
+  // Inicialmente configurar pageSize
+  pageSize = parseInt(document.getElementById('pageSize').value,10) || 10;
+}
+
+/* --- Render de tabla (paginado "mostrar más") --- */
+function renderTableReset(){
+  displayedCount = 0;
+  document.getElementById('tabla').innerHTML = '';
+  document.getElementById('endInfo').textContent = '';
+  document.getElementById('visibleCount').textContent = filtered.length;
+  renderMore();
+}
+
+function renderMore(){
+  const tbl = document.getElementById('tabla');
+  const start = displayedCount;
+  const slice = filtered.slice(start, start + pageSize);
+  if(displayedCount === 0){
+    // construir encabezado
+    const thead = document.createElement('thead');
+    const tr = document.createElement('tr');
+    // usaremos los header visibles (pero si son > 20 columnas, priorizaremos algunas)
+    const visibleHeaders = chooseVisibleHeaders();
+    visibleHeaders.forEach(h => {
+      const th = document.createElement('th'); th.textContent = h; tr.appendChild(th);
+    });
+    thead.appendChild(tr);
+    tbl.appendChild(thead);
+    const tbody = document.createElement('tbody'); tbody.id = 'tbodyData'; tbl.appendChild(tbody);
+  }
+
+  const tbody = document.getElementById('tbodyData');
+  slice.forEach(rowObj => {
+    const tr = document.createElement('tr');
+    // cada celda según visibleHeaders
+    const visibleHeaders = chooseVisibleHeaders();
+    visibleHeaders.forEach(h => {
+      const td = document.createElement('td'); td.textContent = rowObj[h] || '';
+      tr.appendChild(td);
+    });
+    // Click fila -> modal con detalle
+    tr.addEventListener('click', ()=> openModalDetail(rowObj));
+    tbody.appendChild(tr);
+  });
+
+  displayedCount += slice.length;
+  document.getElementById('visibleCount').textContent = filtered.length;
+  // Mostrar u ocultar botón "Mostrar más"
+  if(displayedCount < filtered.length){
+    document.getElementById('btnMore').style.display = '';
+    document.getElementById('endInfo').textContent = `Mostrando ${displayedCount} de ${filtered.length}`;
+  } else {
+    document.getElementById('btnMore').style.display = 'none';
+    document.getElementById('endInfo').textContent = `Mostrando ${filtered.length} resultados.`;
+  }
+}
+
+/* Decide qué columnas mostrar por defecto (prioriza MUNICIPIO, INSTITUCION, TOTAL GENERAL, DOCENTES) */
+function chooseVisibleHeaders(){
+  const all = headers.map(h=>h.visible);
+  const idx = findColumnCandidates(headers);
+  const preferred = [];
+  if(idx.municipio !== -1) preferred.push(headers[idx.municipio].visible);
+  if(idx.institucion !== -1) preferred.push(headers[idx.institucion].visible);
+  // Preferencia para Total General
+  if(idx.total_general !== -1) preferred.push(headers[idx.total_general].visible);
+  // Docentes: 2024 o cantidad
+  if(idx.docentes_2024 !== -1) preferred.push(headers[idx.docentes_2024].visible);
+  else if(idx.docentes_qty !== -1) preferred.push(headers[idx.docentes_qty].visible);
+
+  // Añadir otras columnas selectas: JORNADA, UBICACION, CONECTIVIDAD si existen
+  ['JORNADA','UBICACION','CONECTIVIDAD','SEDE','STATUS','ZONA'].forEach(k => {
+    const f = all.find(x => x.toUpperCase() === k);
+    if(f) preferred.push(f);
+  });
+
+  // Rellenar con las primeras columnas hasta llegar a 12 para visual cómodo
+  const final = [];
+  preferred.forEach(p => { if(p && !final.includes(p)) final.push(p); });
+  for(const h of all){
+    if(final.length >= 12) break;
+    if(!final.includes(h)) final.push(h);
+  }
+  return final;
+}
+
+/* --- Filtros --- */
+function applyFilters(){
+  const m = document.getElementById('filterMunicipio').value.trim();
+  const inst = document.getElementById('filterInstitucion').value.trim();
+  const conn = document.getElementById('filterConectividad').value.trim();
+
+  filtered = rows.filter(r => {
+    let ok = true;
+    if(m) ok = ok && ((r[headers[findColumnCandidates(headers).municipio].visible]||'').trim() === m);
+    if(inst) ok = ok && ((r[headers[findColumnCandidates(headers).institucion].visible]||'').trim() === inst);
+    if(conn){
+      const val = (r[headers[findColumnCandidates(headers).conectividad]?.visible]||'').toString().toUpperCase();
+      ok = ok && ( (conn === 'SI' && val.includes('SI')) || (conn === 'NO' && !val.includes('SI')) );
+    }
+    return ok;
+  });
+
+  // mostrar filtros activos
+  const act = [];
+  if(m) act.push(`Municipio: ${m}`);
+  if(inst) act.push(`Institución: ${inst}`);
+  if(conn) act.push(`Conectividad: ${conn}`);
+  document.getElementById('activeFilters').textContent = act.join(' · ') || '';
+
+  renderTableReset();
+  renderStatsAndChart();
+}
+
+/* --- Búsqueda predictiva y coincidencias --- */
+function getTopMatches(q, limit=5){
+  q = q.toLowerCase();
+  const scored = [];
+  rows.forEach((r,i) => {
+    // construimos un gran texto por fila
+    const txt = Object.values(r).join(' ').toLowerCase();
+    const idx = txt.indexOf(q);
+    if(idx !== -1){
+      // score: primer índice (menor mejor), luego posición de la fila
+      scored.push({i,idx,score: idx + Math.floor(i/1000)});
+    }
+  });
+  scored.sort((a,b) => a.score - b.score);
+  return scored.slice(0,limit).map(s => ({row: rows[s.i], index: s.i}));
+}
+
+function renderSuggestions(list){
+  const el = document.getElementById('suggestions');
+  el.innerHTML = '';
+  if(!list || list.length===0){ el.style.display='none'; return; }
+  list.forEach(item => {
+    const div = document.createElement('div'); div.className = 'suggest-item';
+    const mun = item.row[headers[findColumnCandidates(headers).municipio]?.visible] || '';
+    const inst = item.row[headers[findColumnCandidates(headers).institucion]?.visible] || '';
+    const tg = item.row[headers[findColumnCandidates(headers).total_general]?.visible] || '';
+    div.innerHTML = `<strong>${inst || '(sin institución)'} — ${mun || ''}</strong><div class="small">Total General: ${tg}</div>`;
+    div.addEventListener('click', ()=> {
+      // Al click filtramos solamente esa fila como resultado (y cerramos sugerencias)
+      filtered = [ item.row ];
+      document.getElementById('suggestions').style.display='none';
+      document.getElementById('search').value = '';
+      document.getElementById('activeFilters').textContent = `Búsqueda: ${inst} · ${mun}`;
+      renderTableReset();
+      renderStatsAndChart();
+    });
+    el.appendChild(div);
+  });
+  el.style.display = 'block';
+}
+
+/* --- Modal detalle --- */
+function openModalDetail(row){
+  const modal = document.getElementById('modalBack');
+  const body = document.getElementById('modalBody');
+  body.innerHTML = '';
+  const table = document.createElement('table'); table.style.width='100%';
+  for(const k of Object.keys(row)){
+    const tr = document.createElement('tr');
+    const td1 = document.createElement('td'); td1.style.width='35%'; td1.style.fontWeight='700'; td1.textContent = k;
+    const td2 = document.createElement('td'); td2.textContent = row[k] || '';
+    tr.appendChild(td1); tr.appendChild(td2); table.appendChild(tr);
+  }
+  body.appendChild(table);
+  document.getElementById('modalTitle').textContent = `${row[headers[findColumnCandidates(headers).institucion]?.visible] || 'Detalle'}`;
+  modal.style.display = 'flex';
+}
+
+/* --- Estadísticas y gráfico --- */
+function renderStatsAndChart(){
+  const idx = findColumnCandidates(headers);
+  const hTotal = headers[idx.total_general]?.visible;
+  const hDoc2024 = headers[idx.docentes_2024]?.visible;
+  const hCon = headers[idx.conectividad]?.visible;
+  const hMun = headers[idx.municipio]?.visible;
+
+  // Sum Total General
+  let sumTotalGeneral = 0;
+  let sumDoc2024 = 0;
+  let totalSedes = filtered.length;
+  let countConn = 0;
+  filtered.forEach(r => {
+    const tg = r[hTotal] ? String(r[hTotal]).replace(/[^\d\-]/g,'') : '';
+    const p = parseInt(tg,10);
+    if(!isNaN(p)) sumTotalGeneral += p;
+    const d24 = r[hDoc2024] ? String(r[hDoc2024]).replace(/[^\d\-]/g,'') : '';
+    const pd = parseInt(d24,10);
+    if(!isNaN(pd)) sumDoc2024 += pd;
+    const c = (r[hCon] || '').toString().toUpperCase();
+    if(c.includes('SI')) countConn++;
+  });
+
+  // KPIs
+  document.getElementById('kpiTotalGeneral').textContent = Intl.NumberFormat('es-CO').format(sumTotalGeneral);
+  document.getElementById('kpiDocentes2024').textContent = Intl.NumberFormat('es-CO').format(sumDoc2024);
+  document.getElementById('kpiSedes').textContent = Intl.NumberFormat('es-CO').format(totalSedes);
+  const pct = totalSedes ? Math.round((countConn/totalSedes)*100) : 0;
+  document.getElementById('kpiConect').textContent = `${pct}%`;
+
+  // Chart: sedes por municipio (top 10)
+  const counts = {};
+  filtered.forEach(r => {
+    const m = (r[hMun] || 'SIN MUNICIPIO').toString();
+    counts[m] = (counts[m] || 0) + 1;
+  });
+  const items = Object.entries(counts).sort((a,b) => b[1]-a[1]).slice(0,10);
+  const labels = items.map(x=>x[0]);
+  const data = items.map(x=>x[1]);
+
+  renderChart(labels, data);
+}
+
+/* Render Chart.js */
+let _chart = null;
+function renderChart(labels, data){
+  const ctx = document.getElementById('chartSedes').getContext('2d');
+  if(_chart) _chart.destroy();
+  _chart = new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets: [{ label: 'Sedes', data }] },
+    options: {
+      responsive:true,
+      plugins:{legend:{display:false}},
+      scales:{y:{beginAtZero:true}}
+    }
+  });
+}
+
+/* --- Inicializar carga --- */
+loadCSV();
+</script>
+</body>
+</html>
