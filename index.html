@@ -1,0 +1,682 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Visor BD_MASTER - I.E. Bajo Cauca (Búsqueda múltiple)</title>
+
+  <style>
+    :root{
+      --bg:#f5f7fb; --card:#fff; --muted:#6b7280; --accent:#0b5cff; --radius:12px;
+      --shadow:0 8px 24px rgba(15,20,30,0.06)
+    }
+    body{font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial; margin:0; background:var(--bg); color:#111}
+    .wrap{max-width:1200px;margin:18px auto;padding:12px}
+    header{display:flex;gap:12px;align-items:center;margin-bottom:12px}
+    .logo{width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,#0b5cff,#4ea8ff);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700}
+    h1{font-size:18px;margin:0}
+    .small{font-size:13px;color:var(--muted)}
+
+    .grid{display:grid;grid-template-columns:360px 1fr;gap:12px}
+    .card{background:var(--card);padding:12px;border-radius:var(--radius);box-shadow:var(--shadow)}
+    .controls{display:flex;flex-direction:column;gap:8px}
+    label.small{font-size:12px;color:var(--muted);display:block;margin-bottom:4px}
+    input[type="search"], select, button{padding:8px 10px;border-radius:8px;border:1px solid #e6e9ef;background:#fff;font-size:14px}
+    .row{display:flex;gap:8px;align-items:center}
+    button.primary{background:var(--accent);color:#fff;border:none;padding:9px 12px;border-radius:8px;cursor:pointer}
+    button.ghost{background:transparent;border:1px solid #e6e9ef;border-radius:8px;padding:8px}
+    .suggestions{position:relative}
+
+    /* suggestions dropdown */
+    .suggest-list {
+      position:absolute; left:0; right:0; z-index:90; background:#fff; border:1px solid #e6e9ef;
+      border-radius:8px; margin-top:6px; box-shadow:0 10px 30px rgba(10,20,40,0.06); overflow:hidden;
+      max-height:320px;
+    }
+    .suggest-item {
+      padding:8px 10px; border-bottom:1px solid #f4f6fa; line-height:1.15; font-size:13px; cursor:pointer;
+    }
+    .suggest-item:last-child{border-bottom:none}
+    .suggest-line-main { font-weight:600; font-size:13px; color:#111 }
+    .suggest-line-sub { font-size:12px; color:var(--muted) }
+
+    .suggest-item.active { background:#f7fbff; }
+
+    /* simple table */
+    #tablaWrapper{overflow:auto}
+    table{border-collapse:collapse;width:100%;min-width:900px}
+    thead th{background:#f1f4f9;padding:10px;text-align:left;border-bottom:2px solid #edf0f6;font-weight:700}
+    tbody td{padding:8px;border-bottom:1px solid #f4f6fa}
+    tbody tr:hover{background:#fbfdff;cursor:pointer}
+    .meta{font-size:12px;color:var(--muted)}
+    .kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+    .kpi{padding:10px;border-radius:8px;background:linear-gradient(180deg, #fff,#fbfdff);display:flex;justify-content:space-between;align-items:center}
+    .modal-back{position:fixed;inset:0;background:rgba(5,10,20,0.5);display:none;align-items:center;justify-content:center;z-index:95;padding:20px}
+    .modal{background:#fff;border-radius:12px;max-width:1000px;width:100%;max-height:90vh;overflow:auto;padding:16px}
+    @media (max-width:1000px){ .grid{grid-template-columns:1fr} table{min-width:720px} .suggest-list{left:0;right:auto;width:90vw} }
+  </style>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="logo">BD</div>
+      <div>
+        <h1>BD_MASTER — I.E. Bajo Cauca</h1>
+        <div class="small">Visor público — Búsqueda localizada + categorización</div>
+      </div>
+    </header>
+
+    <div class="grid">
+      <!-- left controls with two search boxes -->
+      <aside class="card">
+        <div class="controls">
+
+          <!-- CAJON 1: LOCALIZADO inteligente de I.E -->
+          <div>
+            <label class="small">LOCALIZADO inteligente de I.E (buscar SEDE, INSTITUCIÓN, Municipio, Códigos)</label>
+            <div class="row suggestions">
+              <input id="searchLocal" type="search" placeholder="Buscar sede, institución, municipio o código DANE..." autocomplete="off"/>
+              <button id="clearLocal" class="ghost">Limpiar</button>
+              <div id="suggestLocal" class="suggest-list" style="display:none" role="listbox" aria-label="Sugerencias localizadas"></div>
+            </div>
+            <div class="meta" style="margin-top:6px">Campos: MUNICIPIO, COD_IE_DANE, INSTITUCION, COD_SEDE_DANE, SEDE, UBICACION. 3 sugerencias; 4 líneas cada una (5 si buscas código DANE).</div>
+          </div>
+
+          <hr style="margin:10px 0">
+
+          <!-- CAJON 2: CATEGORIZACIÓN de I.E y SEDES -->
+          <div>
+            <label class="small">CATEGORIZACIÓN (buscar por encabezado / proyecto — p.ej. NIDO)</label>
+            <div class="row suggestions">
+              <input id="searchCategory" type="search" placeholder="Buscar encabezado (ej. NIDO, BATUTA 2025, Conectividad)..." autocomplete="off"/>
+              <button id="clearCat" class="ghost">Limpiar</button>
+              <div id="suggestCat" class="suggest-list" style="display:none" role="listbox" aria-label="Sugerencias de encabezado"></div>
+            </div>
+            <div class="meta" style="margin-top:6px">La búsqueda localiza columnas de encabezado y muestra sedes que tienen dato en esa columna.</div>
+          </div>
+
+          <hr style="margin:10px 0">
+
+          <div style="margin-top:8px">
+            <label class="small">Filtros rápidos</label>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div>
+                <label class="small">Municipio</label>
+                <select id="filterMunicipio"><option value="">— Todos —</option></select>
+              </div>
+              <div style="display:flex;gap:8px">
+                <button id="applyFilters" class="primary">Aplicar</button>
+                <button id="resetFilters" class="ghost">Reset</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </aside>
+
+      <!-- right: table -->
+      <main>
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div><div class="small">Resultados: <span id="resultsCount">—</span></div><div class="meta" id="activeFilters"></div></div>
+            <div class="meta">Búsqueda múltiple</div>
+          </div>
+
+          <div id="tablaWrapper" style="margin-top:10px">
+            <div id="loading" class="meta">Cargando datos…</div>
+            <table id="dataTable" style="display:none" aria-describedby="tabla-datos"></table>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <div id="modalBack" class="modal-back">
+      <div class="modal">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <h3 id="modalTitle" style="margin:0">Detalle</h3>
+          <button id="closeModal" class="ghost">Cerrar</button>
+        </div>
+        <div id="modalBody" style="margin-top:10px"></div>
+      </div>
+    </div>
+
+  </div>
+
+<script>
+/* ================= CONFIG ================= */
+const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRe5o92LzVVZNSuqn2eUpGf3t1nr_rf58V37ypPjGldYnxNg1B9XTrtZCvNSU-VTKdszHXD9WeqE8sk/pub?gid=1700850446&single=true&output=csv";
+const DEBOUNCE_MS = 250;
+const SUGGEST_LIMIT = 3;
+const CAJON1_FIELDS = ["MUNICIPIO","COD_IE_DANE","INSTITUCION","COD_SEDE_DANE","SEDE","UBICACION"];
+const CAJON2_INDEXABLE_HEADERS = [
+  "2022 ERA","2023 Docentes","2023 Estudiantes","2024 Docentes","2024 Estudiantes","2025 Docentes","2025 Estudiantes",
+  "2022 ESC_VIDA","2023 ESC_VIDA","2024 ESC_VIDA","2025 ESC_VIDA","2024 NIDO","2025 NIDO","BATUTA 2025","ATAL 2025","FCC 2025","PASC 2025",
+  "MAMM 2025","BECA UDEA 2025","PC 2023","PC 2024","Bibliográfica (Dotación)","Deportiva (Dotación)","INFRAEST. Gob",
+  "Legalización Predio Resolución de sana posesión","Bienestar Maestro","SENA (Oferta)","COMFAMA inspiración","AGUA (Alianza por el Agua)",
+  "Agua Fund.EPM","Agua potable","Conectividad","Embellecimiento Escuelas"
+];
+
+/* ================ Estado ================ */
+let rawRows = [];
+let headerRow = []; // array of {visible,key}
+let rows = []; // array of objects with __meta
+let filtered = [];
+let indices = {}; // indices for key fields
+let queryCacheLocal = new Map();
+let queryCacheCat = new Map();
+
+/* ================ Utils ================ */
+function safeText(x){ return x===undefined||x===null ? '' : String(x); }
+function fixEncoding(s){ try { return decodeURIComponent(escape(s)); } catch(e){ return s; } }
+function normalizeCell(raw){
+  const fixed = fixEncoding(safeText(raw)).replace(/[\u0000-\u001F]/g,'').trim();
+  const noAccents = fixed.normalize('NFD').replace(/\p{Diacritic}/gu,'');
+  const visible = noAccents.replace(/\s+/g,' ').replace(/\u00A0/g,' ').trim();
+  const key = visible.toUpperCase().replace(/[^A-Z0-9]+/g,'_').replace(/^_|_$/g,'');
+  return {visible, key};
+}
+function normalizeForSearch(s){
+  if(s===undefined||s===null) return '';
+  return fixEncoding(String(s)).normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase();
+}
+function parseNumber(v){
+  if(v === undefined || v === null) return NaN;
+  const s = String(v).replace(/[^\d\-\.\,]/g,'').replace(/\./g,'').replace(',','.');
+  const n = Number(s);
+  return isNaN(n) ? NaN : n;
+}
+
+/* highlighting helpers (normalize mapping) */
+function mapNormToOriginalIndices(original){
+  const orig = safeText(original);
+  const norm = orig.normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase();
+  const mapping = [];
+  let j=0;
+  for(let i=0;i<orig.length;i++){ mapping.push(i); }
+  return {orig, norm, mapping};
+}
+function findNormalizedMatches(original, query){
+  const q = query.normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase();
+  if(!q) return [];
+  const {orig, norm, mapping} = mapNormToOriginalIndices(original);
+  const positions = [];
+  let startIndex = 0;
+  while(true){
+    const idx = norm.indexOf(q, startIndex);
+    if(idx === -1) break;
+    const origStart = mapping[idx] !== undefined ? mapping[idx] : idx;
+    const origEnd = (mapping[idx + q.length - 1] !== undefined) ? mapping[idx + q.length - 1] + 1 : origStart + q.length;
+    positions.push([origStart, origEnd]);
+    startIndex = idx + q.length;
+  }
+  return positions;
+}
+function buildHighlightedFragment(text, query){
+  const frag = document.createDocumentFragment();
+  if(!text) { frag.appendChild(document.createTextNode('')); return frag; }
+  const matches = findNormalizedMatches(text, query);
+  if(matches.length === 0){ frag.appendChild(document.createTextNode(text)); return frag; }
+  let cursor = 0;
+  for(const [s,e] of matches){
+    if(s > cursor) frag.appendChild(document.createTextNode(text.slice(cursor, s)));
+    const strong = document.createElement('strong'); strong.textContent = text.slice(s,e);
+    frag.appendChild(strong);
+    cursor = e;
+  }
+  if(cursor < text.length) frag.appendChild(document.createTextNode(text.slice(cursor)));
+  return frag;
+}
+
+/* ================= CSV load & preproc ================= */
+function loadCSV(){
+  document.getElementById('loading').textContent = 'Cargando CSV…';
+  Papa.parse(CSV_URL, { download: true, skipEmptyLines:false, complete: function(res){
+    rawRows = res.data.map(r => r.map(c => c === undefined ? '' : String(c)));
+    while(rawRows.length && rawRows[rawRows.length - 1].every(x=>x.trim()==='')) rawRows.pop();
+    if(rawRows.length < 3){
+      document.getElementById('loading').textContent = 'CSV inválido: se esperaban al menos 3 filas (secciones + encabezado).';
+      return;
+    }
+    headerRow = rawRows[2].map(cell => normalizeCell(cell));
+    rows = rawRows.slice(3).map(r => {
+      const obj = {};
+      for(let i=0;i<headerRow.length;i++){
+        const key = headerRow[i] ? headerRow[i].visible : `C${i}`;
+        obj[key] = r[i] === undefined ? '' : r[i];
+      }
+      const tg = parseNumber(obj["TOTAL GENERAL"] || obj["TOTAL_GENERAL"] || 0);
+      obj.__meta = {
+        total_general: isNaN(tg) ? 0 : tg,
+        norm: {
+          sede: normalizeForSearch(obj["SEDE"] || ''),
+          inst: normalizeForSearch(obj["INSTITUCION"] || ''),
+          mun: normalizeForSearch(obj["MUNICIPIO"] || ''),
+          ubic: normalizeForSearch(obj["UBICACION"] || ''),
+          full: normalizeForSearch(Object.values(obj).join(' '))
+        },
+        cod_sede: normalizeForSearch(obj["COD_SEDE_DANE"] || ''),
+        cod_ie: normalizeForSearch(obj["COD_IE_DANE"] || '')
+      };
+      return obj;
+    });
+
+    // header indices
+    indices.municipio = findHeaderVisible("MUNICIPIO");
+    indices.institucion = findHeaderVisible("INSTITUCION");
+    indices.sede = findHeaderVisible("SEDE");
+    indices.cod_sede = findHeaderVisible("COD_SEDE_DANE");
+    indices.cod_ie = findHeaderVisible("COD_IE_DANE");
+    indices.total_general = findHeaderVisible("TOTAL GENERAL") !== -1 ? findHeaderVisible("TOTAL GENERAL") : findHeaderVisible("TOTAL_GENERAL");
+    indices.ubicacion = findHeaderVisible("UBICACION");
+    indices.status = findHeaderVisible("STATUS");
+
+    filtered = rows.slice();
+    initUI();
+  }, error: function(err){
+    document.getElementById('loading').textContent = 'Error leyendo CSV: ' + (err && err.message ? err.message : JSON.stringify(err));
+  }});
+}
+function findHeaderVisible(name){
+  const U = (name||'').toUpperCase();
+  for(let i=0;i<headerRow.length;i++){
+    if(headerRow[i].visible.toUpperCase() === U) return i;
+  }
+  for(let i=0;i<headerRow.length;i++){
+    if(headerRow[i].visible.toUpperCase().includes(U)) return i;
+  }
+  return -1;
+}
+
+/* ================= UI init ================= */
+function initUI(){
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('dataTable').style.display = '';
+  populateMunicipios();
+
+  // EVENTS: CAJON1 (LOCAL)
+  const sbLocal = document.getElementById('searchLocal');
+  let debounceLocal = null;
+  sbLocal.addEventListener('input', (e)=> {
+    clearTimeout(debounceLocal);
+    debounceLocal = setTimeout(()=> onLocalInput(e.target.value), DEBOUNCE_MS);
+  });
+  document.getElementById('clearLocal').addEventListener('click', ()=> { sbLocal.value=''; clearLocalSuggestions(); filtered = rows.slice(); renderTableReset(); });
+
+  // keyboard nav local
+  sbLocal.addEventListener('keydown', (e)=> keyboardNavHandler(e, 'local'));
+
+  // click outside closes suggestions -> specific for local and cat
+  document.addEventListener('click', (ev)=>{
+    const listLocal = document.getElementById('suggestLocal');
+    const listCat = document.getElementById('suggestCat');
+    if(!listLocal.contains(ev.target) && ev.target !== sbLocal) clearLocalSuggestions();
+    const sbCat = document.getElementById('searchCategory');
+    if(!listCat.contains(ev.target) && ev.target !== sbCat) clearCatSuggestions();
+  });
+
+  // CAJON2 (CATEGORY)
+  const sbCat = document.getElementById('searchCategory');
+  let debounceCat = null;
+  sbCat.addEventListener('input', (e)=> {
+    clearTimeout(debounceCat);
+    debounceCat = setTimeout(()=> onCategoryInput(e.target.value), DEBOUNCE_MS);
+  });
+  document.getElementById('clearCat').addEventListener('click', ()=> { sbCat.value=''; clearCatSuggestions(); });
+
+  sbCat.addEventListener('keydown', (e)=> keyboardNavHandler(e, 'cat'));
+
+  // general UI
+  document.getElementById('applyFilters').addEventListener('click', ()=> applyFiltersFromUI());
+  document.getElementById('resetFilters').addEventListener('click', ()=> { document.getElementById('filterMunicipio').value=''; filtered = rows.slice(); renderTableReset(); });
+
+  document.getElementById('closeModal').addEventListener('click', ()=> document.getElementById('modalBack').style.display='none');
+
+  // initial render
+  renderTableReset();
+}
+
+/* populate municipios filter */
+function populateMunicipios(){
+  const setM = new Set();
+  rows.forEach(r => {
+    const v = safeText(r[headerRow[indices.municipio]?.visible]);
+    if(v.trim()) setM.add(v.trim());
+  });
+  const sel = document.getElementById('filterMunicipio');
+  Array.from(setM).sort((a,b)=>a.localeCompare(b)).forEach(v => {
+    const opt = document.createElement('option'); opt.value = v; opt.textContent = v; sel.appendChild(opt);
+  });
+}
+
+/* ================= Keyboard navigation for suggestions ================= */
+function keyboardNavHandler(e, kind){
+  const listEl = (kind === 'local') ? document.getElementById('suggestLocal') : document.getElementById('suggestCat');
+  if(listEl.style.display === 'none') return;
+  const items = Array.from(listEl.querySelectorAll('.suggest-item'));
+  if(items.length === 0) return;
+  let activeIndex = items.findIndex(i => i.classList.contains('active'));
+  if(e.key === 'ArrowDown'){ e.preventDefault(); activeIndex = Math.min(items.length - 1, activeIndex + 1); items.forEach((it,idx)=> it.classList.toggle('active', idx===activeIndex)); items[activeIndex].focus(); }
+  else if(e.key === 'ArrowUp'){ e.preventDefault(); activeIndex = Math.max(0, activeIndex - 1); items.forEach((it,idx)=> it.classList.toggle('active', idx===activeIndex)); items[activeIndex].focus(); }
+  else if(e.key === 'Enter'){ e.preventDefault(); if(activeIndex === -1) activeIndex = 0; items[activeIndex].click(); }
+  else if(e.key === 'Escape'){ clearLocalSuggestions(); clearCatSuggestions(); }
+}
+
+/* ================= CAJON 1: LOCALIZADO logic ================= */
+/* unique key generator to avoid duplicates: prefer COD_SEDE_DANE, else COD_IE_DANE, else SEDE|INSTITUCION|MUNICIPIO */
+function uniqueKeyForRow(r){
+  const codS = safeText(r["COD_SEDE_DANE"] || r["COD_SEDE_DANE "] || '');
+  const codI = safeText(r["COD_IE_DANE"] || r["COD_IE_DANE "] || '');
+  if(codS) return `S:${codS.toLowerCase()}`;
+  if(codI) return `I:${codI.toLowerCase()}`;
+  return `K:${safeText(r["SEDE"]).toLowerCase()}|${safeText(r["INSTITUCION"]).toLowerCase()}|${safeText(r["MUNICIPIO"]).toLowerCase()}`;
+}
+
+/* search candidates for CAJON1 following priority and dedupe */
+function searchCandidatesLocal(q){
+  if(!q || q.trim().length < 2) return [];
+  const qn = normalizeForSearch(q);
+
+  if(queryCacheLocal.has(qn)) return queryCacheLocal.get(qn);
+
+  const cand = [];
+  for(let i=0;i<rows.length;i++){
+    const r = rows[i];
+    // only test the CAJON1 fields
+    const valMap = {
+      "MUNICIPIO": r.__meta.norm.mun,
+      "COD_IE_DANE": r.__meta.cod_ie || '',
+      "INSTITUCION": r.__meta.norm.inst,
+      "COD_SEDE_DANE": r.__meta.cod_sede || '',
+      "SEDE": r.__meta.norm.sede,
+      "UBICACION": r.__meta.norm.ubic
+    };
+    let matched = false;
+    let score = 999;
+    let matchedField = null;
+
+    // priority: check startsWith for each field in CAJON1_FIELDS order
+    for(let p=0;p<CAJON1_FIELDS.length;p++){
+      const field = CAJON1_FIELDS[p];
+      const fv = (valMap[field] || '');
+      if(fv && fv.startsWith(qn)){ matched = true; score = p+1; matchedField = field; break; }
+    }
+    // if no startsWith, check contains with lower priority
+    if(!matched){
+      for(let p=0;p<CAJON1_FIELDS.length;p++){
+        const field = CAJON1_FIELDS[p];
+        const fv = (valMap[field] || '');
+        if(fv && fv.includes(qn)){ matched = true; score = 10 + p; matchedField = field; break; }
+      }
+    }
+    if(matched){
+      // position penalty
+      const pos = (valMap[matchedField] || '').indexOf(qn);
+      const finalScore = score + (pos >= 0 ? pos/1000 : 0);
+      cand.push({row:r, score: finalScore, matchedField});
+    }
+  }
+
+  // sort by score asc, then total_general desc
+  cand.sort((a,b)=>{
+    if(a.score !== b.score) return a.score - b.score;
+    const ta = a.row.__meta.total_general || 0;
+    const tb = b.row.__meta.total_general || 0;
+    if(ta !== tb) return tb - ta;
+    return safeText(a.row["SEDE"] || a.row["INSTITUCION"]).localeCompare(safeText(b.row["SEDE"] || b.row["INSTITUCION"]));
+  });
+
+  // dedupe using uniqueKeyForRow, preserve first occurrence
+  const seen = new Set();
+  const unique = [];
+  for(const c of cand){
+    const key = uniqueKeyForRow(c.row);
+    if(!seen.has(key)){
+      seen.add(key);
+      unique.push(c);
+    }
+    if(unique.length >= 200) break;
+  }
+
+  queryCacheLocal.set(qn, unique);
+  return unique;
+}
+
+/* build suggestion element for CAJON1 with 4 lines (or 5 if code search) */
+function buildLocalSuggestionElement(candidate, q){
+  const r = candidate.row;
+  const matched = candidate.matchedField || 'SEDE';
+  const qstr = q;
+
+  // select values
+  const v = (name) => safeText(r[name] || '');
+  const inst = v("INSTITUCION");
+  const sede = v("SEDE");
+  const ubic = v("UBICACION");
+  const muni = v("MUNICIPIO");
+  const codS = v("COD_SEDE_DANE");
+  const codI = v("COD_IE_DANE");
+  const status = v("STATUS") || v("Status") || v("status") || '';
+
+  // Determine lines order: line1 = the searched field value if matches; else SEDE as main
+  // The 4 lines order requested: Dato1(SEDE or searched), Dato2(INSTITUCION), Dato3(UBICACIÓN), Dato4(MUNICIPIO), optional Dato5 codes
+  const lines = [];
+  // If search was by code (q matches codS or codI), we will include code as line1
+  const qn = normalizeForSearch(qstr);
+  const isCodeSearch = (normalizeForSearch(codS).startsWith(qn) || normalizeForSearch(codI).startsWith(qn));
+  if(isCodeSearch){
+    // special: include code as first line (the code that matched), then SEDE, INSTITUCION, UBICACION, MUNICIPIO (5 lines)
+    if(normalizeForSearch(codS).startsWith(qn)) lines.push(['Código Sede', codS]);
+    else if(normalizeForSearch(codI).startsWith(qn)) lines.push(['Código IE', codI]);
+    lines.push(['SEDE', sede]);
+    lines.push(['INSTITUCIÓN', inst]);
+    lines.push(['UBICACIÓN', ubic || '—']);
+    lines.push(['MUNICIPIO', muni || '—']);
+  } else {
+    // not code search: primary is SEDE if present, else field that matched, else INSTITUCION
+    const primary = sede || (v(matched) || inst);
+    lines.push(['SEDE', primary || '—']);
+    lines.push(['INSTITUCIÓN', inst || '—']);
+    lines.push(['UBICACIÓN', ubic || '—']);
+    lines.push(['MUNICIPIO', muni || '—']);
+    // optionally include CODE in small if exists but not a main line
+    // We'll not show codes in suggestions unless code is searched, per your instruction
+  }
+
+  // Build DOM element (4 lines compact or 5 when code)
+  const div = document.createElement('div'); div.className='suggest-item'; div.tabIndex=0;
+  // show possible CIERRE status prominently in line 4 if present
+  const hasCierre = /cier/i.test(status);
+
+  // For each line, display value, highlight matches of q
+  for(let i=0;i<lines.length;i++){
+    const [label, val] = lines[i];
+    const lineEl = document.createElement('div');
+    // main label for line1
+    if(i===0){
+      lineEl.className = 'suggest-line-main';
+      // use highlighted fragment on the value (not the label)
+      const frag = buildHighlightedFragment(val, qstr);
+      lineEl.appendChild(frag);
+    } else {
+      lineEl.className = 'suggest-line-sub';
+      const frag = buildHighlightedFragment(val, qstr);
+      // if this is the 3rd or 4th line and status has CIERRE, show status instead of line value
+      if(i===3 && hasCierre){
+        // line 4 replaced by Status
+        const statFrag = document.createDocumentFragment();
+        statFrag.appendChild(document.createTextNode(status));
+        lineEl.appendChild(statFrag);
+      } else {
+        lineEl.appendChild(frag);
+      }
+    }
+    div.appendChild(lineEl);
+  }
+
+  // click behavior: filter to this single row
+  div.addEventListener('click', ()=> {
+    filtered = [r];
+    document.getElementById('activeFilters').textContent = `Sugerencia: ${safeText(r["SEDE"]||r["INSTITUCION"])}`;
+    renderTableReset();
+    clearLocalSuggestions();
+    // scroll to table
+    document.getElementById('dataTable').scrollIntoView({behavior:'smooth', block:'start'});
+  });
+
+  return div;
+}
+
+/* render top 3 local suggestions */
+function renderLocalSuggestions(q){
+  const el = document.getElementById('suggestLocal');
+  el.innerHTML = '';
+  if(!q || q.trim().length < 2){ el.style.display='none'; return; }
+  const cands = searchCandidatesLocal(q);
+  if(!cands.length){ const none=document.createElement('div'); none.className='suggest-item'; none.textContent='No se encontraron sugerencias'; el.appendChild(none); el.style.display='block'; return; }
+  const top = cands.slice(0, SUGGEST_LIMIT);
+  top.forEach(c => el.appendChild(buildLocalSuggestionElement(c, q)));
+  el.style.display='block';
+}
+function clearLocalSuggestions(){ const el=document.getElementById('suggestLocal'); el.innerHTML=''; el.style.display='none'; queryCacheLocal.clear(); }
+
+/* on local input */
+function onLocalInput(val){ renderLocalSuggestions(val); }
+
+/* ================= CAJON 2: CATEGORY logic (search headers then list rows with data) */
+function searchCategoryHeaders(q){
+  if(!q || q.trim().length < 2) return [];
+  const qn = normalizeForSearch(q);
+  if(queryCacheCat.has(qn)) return queryCacheCat.get(qn);
+  const matches = [];
+  // search headerRow (visible names) among CAJON2_INDEXABLE_HEADERS (normalize)
+  for(let i=0;i<headerRow.length;i++){
+    const hv = headerRow[i].visible || '';
+    const hvn = normalizeForSearch(hv);
+    // only consider if header is among allowed indexable list OR includes query term
+    const allowed = CAJON2_INDEXABLE_HEADERS.some(h => hv.toUpperCase().includes(h.toUpperCase()));
+    if(allowed && hvn.includes(qn)) matches.push({idx:i, header:hv});
+    else if(!allowed && hvn.includes(qn)){ matches.push({idx:i, header:hv}); } // also include if direct match even if not in list
+  }
+  // sort by proximity of match
+  matches.sort((a,b)=> a.header.localeCompare(b.header));
+  queryCacheCat.set(qn, matches);
+  return matches;
+}
+
+/* build category suggestion element */
+function buildCategorySuggestionElement(match, q){
+  const idx = match.idx;
+  const headerName = match.header;
+  const qstr = q;
+  const div = document.createElement('div'); div.className='suggest-item'; div.tabIndex=0;
+  const main = document.createElement('div'); main.className='suggest-line-main';
+  main.appendChild(buildHighlightedFragment(headerName, qstr));
+  const sub = document.createElement('div'); sub.className='suggest-line-sub';
+  // compute quick stats: count of rows with any non-empty value for this column, count of "SI"/"x"
+  const colName = headerRow[idx].visible;
+  let countAny = 0, countYes=0;
+  const topMun = {};
+  rows.forEach(r => {
+    const cell = safeText(r[colName]);
+    if(cell.trim() !== ''){ countAny++; if(/^\s*(x|si|sí|1)\s*$/i.test(cell)) countYes++; const muni = safeText(r["MUNICIPIO"]); topMun[muni] = (topMun[muni]||0)+1; }
+  });
+  const topMunList = Object.entries(topMun).sort((a,b)=>b[1]-a[1]).slice(0,3).map(x=> `${x[0]}(${x[1]})`).join(', ');
+  sub.textContent = `Sedes con dato: ${countAny} · "SI/x": ${countYes} · Top municipios: ${topMunList}`;
+  div.appendChild(main); div.appendChild(sub);
+
+  // click behavior: open a small list (below) of sedes with data in that column (first 50)
+  div.addEventListener('click', ()=>{
+    // build results list modal-like inside suggestions area (but we'll instead apply filter for rows having non-empty in that column)
+    // We'll display directly the first 200 matches in table (filter)
+    const matchesRows = rows.filter(r => safeText(r[colName]).trim() !== '');
+    // attach an indicator and set filtered to matches
+    filtered = matchesRows;
+    document.getElementById('activeFilters').textContent = `Columna: ${colName} (${countAny} sedes con dato)`;
+    renderTableReset();
+    clearCatSuggestions();
+  });
+
+  return div;
+}
+
+/* render category suggestions */
+function renderCatSuggestions(q){
+  const el = document.getElementById('suggestCat');
+  el.innerHTML = '';
+  if(!q || q.trim().length < 2){ el.style.display='none'; return; }
+  const matches = searchCategoryHeaders(q);
+  if(!matches.length){ const none=document.createElement('div'); none.className='suggest-item'; none.textContent='No se encontraron encabezados'; el.appendChild(none); el.style.display='block'; return; }
+  const top = matches.slice(0, SUGGEST_LIMIT);
+  top.forEach(m => el.appendChild(buildCategorySuggestionElement(m, q)));
+  el.style.display='block';
+}
+function clearCatSuggestions(){ const el=document.getElementById('suggestCat'); el.innerHTML=''; el.style.display='none'; queryCacheCat.clear(); }
+
+/* on category input */
+function onCategoryInput(val){ renderCatSuggestions(val); }
+
+/* ================= Table rendering & modal (kept minimal but functional) ================= */
+function renderTableReset(){
+  const table = document.getElementById('dataTable');
+  table.innerHTML = '';
+  const thead = document.createElement('thead'); const trh = document.createElement('tr');
+  const visibleCols = ["MUNICIPIO","INSTITUCION","SEDE","TOTAL GENERAL","STATUS"];
+  visibleCols.forEach(c => { const th = document.createElement('th'); th.textContent = c; trh.appendChild(th); });
+  thead.appendChild(trh); table.appendChild(thead);
+  const tbody = document.createElement('tbody');
+  const toShow = filtered.slice(0, 1000); // cap safety 
+  toShow.forEach(row => {
+    const tr = document.createElement('tr');
+    const tdMun = document.createElement('td'); tdMun.textContent = safeText(row["MUNICIPIO"]); tr.appendChild(tdMun);
+    const tdInst = document.createElement('td'); tdInst.textContent = safeText(row["INSTITUCION"]); tr.appendChild(tdInst);
+    const tdSede = document.createElement('td'); tdSede.textContent = safeText(row["SEDE"]); tr.appendChild(tdSede);
+    const tdTG = document.createElement('td'); tdTG.textContent = safeText(row["TOTAL GENERAL"]); tr.appendChild(tdTG);
+    const tdStatus = document.createElement('td'); tdStatus.textContent = safeText(row["STATUS"] || row["Status"] || ''); tr.appendChild(tdStatus);
+    tr.addEventListener('click', ()=> openModalDetail(row));
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  document.getElementById('resultsCount').textContent = filtered.length;
+}
+
+/* modal detail */
+function openModalDetail(row){
+  document.getElementById('modalTitle').textContent = row["INSTITUCION"] || 'Detalle';
+  const body = document.getElementById('modalBody'); body.innerHTML = '';
+  const t = document.createElement('table');
+  for(const key of Object.keys(row)){
+    if(/COD_IE_DANE|COD_SEDE_DANE/i.test(key)) continue; // avoid DANE codes shown by default
+    const tr = document.createElement('tr');
+    const td1 = document.createElement('td'); td1.style.fontWeight='700'; td1.style.width='35%'; td1.textContent = key;
+    const td2 = document.createElement('td'); td2.textContent = safeText(row[key]);
+    tr.appendChild(td1); tr.appendChild(td2); t.appendChild(tr);
+  }
+  body.appendChild(t);
+  document.getElementById('modalBack').style.display = 'flex';
+}
+
+/* ================= Filters UI apply ================= */
+function applyFiltersFromUI(){
+  const mun = document.getElementById('filterMunicipio').value.trim();
+  filtered = rows.filter(r => {
+    let ok = true;
+    if(mun) ok = ok && (safeText(r["MUNICIPIO"]).trim() === mun);
+    return ok;
+  });
+  document.getElementById('activeFilters').textContent = mun ? `Municipio: ${mun}` : '';
+  renderTableReset();
+}
+
+/* =============== clear helpers =============== */
+function clearLocalSuggestions(){ const el=document.getElementById('suggestLocal'); el.innerHTML=''; el.style.display='none'; queryCacheLocal.clear(); }
+function clearCatSuggestions(){ const el=document.getElementById('suggestCat'); el.innerHTML=''; el.style.display='none'; queryCacheCat.clear(); }
+
+/* =============== Initialization =============== */
+(function init(){ loadCSV(); })();
+
+</script>
+</body>
+</html>
