@@ -1,24 +1,20 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Visor BD_MASTER - I.E. Bajo Cauca</title>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Visor BD_MASTER - I.E. Bajo Cauca (Busqueda Inteligente Mejorada)</title>
 
-  <!-- Minimal, clean styles -->
   <style>
     :root{
-      --bg:#f5f7fb; --card:#ffffff; --muted:#6b7280; --accent:#0b5cff;
-      --shadow: 0 8px 24px rgba(15,20,30,0.06);
-      --radius:12px;
-      --glass: rgba(255,255,255,0.6);
-      font-synthesis: none;
+      --bg:#f5f7fb; --card:#fff; --muted:#6b7280; --accent:#0b5cff; --radius:12px;
+      --shadow:0 8px 24px rgba(15,20,30,0.06)
     }
-    html,body{height:100%;margin:0;font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;background:var(--bg);color:#111}
-    .wrap{max-width:1200px;margin:20px auto;padding:12px}
-    header{display:flex;gap:12px;align-items:center;margin-bottom:14px}
+    body{font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial; margin:0; background:var(--bg); color:#111}
+    .wrap{max-width:1200px;margin:18px auto;padding:12px}
+    header{display:flex;gap:12px;align-items:center;margin-bottom:12px}
     .logo{width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,#0b5cff,#4ea8ff);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700}
-    h1{font-size:20px;margin:0}
+    h1{font-size:18px;margin:0}
     .small{font-size:13px;color:var(--muted)}
 
     .grid{display:grid;grid-template-columns:320px 1fr;gap:12px}
@@ -30,36 +26,49 @@
     button.primary{background:var(--accent);color:#fff;border:none;padding:9px 12px;border-radius:8px;cursor:pointer}
     button.ghost{background:transparent;border:1px solid #e6e9ef;border-radius:8px;padding:8px}
     .suggestions{position:relative}
-    .suggest-list{position:absolute;left:0;right:0;z-index:60;background:#fff;border:1px solid #e6e9ef;max-height:260px;overflow:auto;border-radius:8px;margin-top:6px;box-shadow:0 10px 30px rgba(10,20,40,0.06)}
-    .suggest-item{padding:8px;border-bottom:1px solid #f4f6fa}
-    .suggest-item:hover{background:#fbfdff;cursor:pointer}
 
-    /* table */
+    /* SUGGESTIONS dropdown: compact for mobile, exactly 3 suggestions max */
+    .suggest-list {
+      position:absolute;
+      left:0;
+      right:0;
+      z-index:90;
+      background:#fff;
+      border:1px solid #e6e9ef;
+      border-radius:8px;
+      margin-top:6px;
+      box-shadow:0 10px 30px rgba(10,20,40,0.06);
+      overflow:hidden;
+      max-height:240px; /* enough for 3 suggestions x 3 lines small */
+    }
+    .suggest-item {
+      padding:8px 10px;
+      border-bottom:1px solid #f4f6fa;
+      line-height:1.15;
+      font-size:13px; /* compact */
+      cursor:pointer;
+    }
+    .suggest-item:last-child{border-bottom:none}
+    .suggest-line-main { font-weight:600; font-size:13px; color:#111 }
+    .suggest-line-sub { font-size:12px; color:var(--muted) }
+
+    .suggest-item.active { background:#f7fbff; }
+
+    /* small table styles kept minimal */
     #tablaWrapper{overflow:auto}
     table{border-collapse:collapse;width:100%;min-width:900px}
-    thead th{background:#f1f4f9;padding:10px;text-align:left;border-bottom:2px solid #edf0f6;font-weight:700;position:sticky;top:0;z-index:5}
+    thead th{background:#f1f4f9;padding:10px;text-align:left;border-bottom:2px solid #edf0f6;font-weight:700}
     tbody td{padding:8px;border-bottom:1px solid #f4f6fa}
     tbody tr:hover{background:#fbfdff;cursor:pointer}
     .meta{font-size:12px;color:var(--muted)}
     .kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
     .kpi{padding:10px;border-radius:8px;background:linear-gradient(180deg, #fff,#fbfdff);display:flex;justify-content:space-between;align-items:center}
-    .kpi .title{font-size:12px;color:var(--muted)}
-    .kpi .value{font-weight:700;font-size:18px}
-
-    .bottom-bar{display:flex;justify-content:space-between;align-items:center;margin-top:8px;gap:8px}
-    .small-muted{font-size:12px;color:var(--muted)}
-
-    /* modal */
-    .modal-back{position:fixed;inset:0;background:rgba(5,10,20,0.5);display:none;align-items:center;justify-content:center;z-index:90;padding:20px}
+    .modal-back{position:fixed;inset:0;background:rgba(5,10,20,0.5);display:none;align-items:center;justify-content:center;z-index:95;padding:20px}
     .modal{background:#fff;border-radius:12px;max-width:1000px;width:100%;max-height:90vh;overflow:auto;padding:16px}
-    .modal table{width:100%;border-collapse:collapse}
-    .modal td{padding:6px;border-bottom:1px solid #f4f6fa}
-    .col-chooser{display:flex;flex-direction:column;gap:6px;max-height:220px;overflow:auto;padding:6px;border:1px solid #f3f5f8;border-radius:8px}
-
     @media (max-width:1000px){ .grid{grid-template-columns:1fr} table{min-width:720px} .suggest-list{left:0;right:auto;width:90vw} }
   </style>
 
-  <!-- Libraries -->
+  <!-- PapaParse and Chart.js (used elsewhere) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -69,38 +78,30 @@
       <div class="logo">BD</div>
       <div>
         <h1>BD_MASTER — I.E. Bajo Cauca</h1>
-        <div class="small">Visor público — solo consulta · Fuente: Google Sheets (CSV)</div>
+        <div class="small">Visor público — búsqueda inteligente mejorada</div>
       </div>
     </header>
 
     <div class="grid">
-      <!-- LEFT: Controls + KPIs -->
       <aside class="card">
         <div class="controls">
           <div>
-            <label class="small">Búsqueda inteligente</label>
+            <label class="small">Búsqueda inteligente (2+ caracteres)</label>
             <div class="row suggestions">
-              <input id="searchBox" type="search" placeholder="Escribe (min. 2 caracteres)..." />
+              <input id="searchBox" type="search" placeholder="Buscar sede, institución, municipio, ubicación..." autocomplete="off"/>
               <button id="clearBtn" class="ghost">Limpiar</button>
-              <div id="suggestList" class="suggest-list" style="display:none"></div>
+              <div id="suggestList" class="suggest-list" style="display:none" role="listbox" aria-label="Sugerencias"></div>
             </div>
-            <div class="meta" style="margin-top:6px">Sugerencias top 5 desde 2 caracteres.</div>
+            <div class="meta" style="margin-top:6px">Se muestran 3 sugerencias compactas (cada una con 3 líneas).</div>
           </div>
 
-          <div style="margin-top:10px">
+          <!-- other controls minimal to keep focus on search -->
+          <div style="margin-top:12px">
             <label class="small">Filtros rápidos</label>
             <div style="display:flex;flex-direction:column;gap:8px">
               <div>
                 <label class="small">Municipio</label>
                 <select id="filterMunicipio"><option value="">— Todos —</option></select>
-              </div>
-              <div>
-                <label class="small">Institución</label>
-                <select id="filterInstitucion"><option value="">— Todas —</option></select>
-              </div>
-              <div>
-                <label class="small">Conectividad</label>
-                <select id="filterConectividad"><option value="">— Cualquiera —</option><option value="SI">SI</option><option value="NO">NO</option></select>
               </div>
               <div style="display:flex;gap:8px">
                 <button id="applyFilters" class="primary">Aplicar</button>
@@ -109,49 +110,9 @@
             </div>
           </div>
 
-          <div style="margin-top:12px">
-            <label class="small">Columnas visibles</label>
-            <div class="col-chooser" id="colChooser"></div>
-            <div style="display:flex;gap:8px;margin-top:8px">
-              <button id="saveCols" class="primary">Guardar selección</button>
-              <button id="resetCols" class="ghost">Reset columnas</button>
-            </div>
-          </div>
-
-          <div style="margin-top:12px">
-            <label class="small">Opciones privacidad</label>
-            <div style="display:flex;gap:8px;align-items:center">
-              <input id="toggleHideContacts" type="checkbox" checked />
-              <label class="small">Ocultar contactos (cel, email) en tabla</label>
-            </div>
-          </div>
-
-          <div style="margin-top:12px">
-            <div class="meta">Controles de página</div>
-            <div class="row" style="margin-top:6px">
-              <label class="small">Mostrar</label>
-              <select id="pageSize"><option value="10">10</option><option value="25">25</option><option value="50">50</option></select>
-              <button id="reload" class="ghost">Recargar</button>
-            </div>
-          </div>
-
-          <div style="margin-top:12px">
-            <div class="small">KPIs</div>
-            <div class="kpi-grid">
-              <div class="kpi"><div><div class="title">Total General (suma)</div><div id="kpiTotal" class="value">—</div></div></div>
-              <div class="kpi"><div><div class="title">Docentes 2024 (suma)</div><div id="kpiDoc2024" class="value">—</div></div></div>
-              <div class="kpi"><div><div class="title">Sedes (visible)</div><div id="kpiSedes" class="value">—</div></div></div>
-              <div class="kpi"><div><div class="title">Conectividad % (SI)</div><div id="kpiConn" class="value">—</div></div></div>
-            </div>
-            <div style="margin-top:10px">
-              <canvas id="chartSedes" style="width:100%;height:160px"></canvas>
-            </div>
-          </div>
-
         </div>
       </aside>
 
-      <!-- RIGHT: Table + preview -->
       <main>
         <div class="card">
           <div style="display:flex;justify-content:space-between;align-items:center">
@@ -159,39 +120,22 @@
               <div class="small">Resultados: <span id="resultsCount">—</span></div>
               <div class="meta" id="activeFilters"></div>
             </div>
-            <div style="display:flex;gap:8px;align-items:center">
-              <label class="small">Columnas por defecto: </label>
-              <div id="visibleColsList" class="meta" style="margin-left:6px"></div>
-            </div>
+            <div class="meta">Búsqueda: mejorada</div>
           </div>
 
           <div id="tablaWrapper" style="margin-top:10px">
             <div id="loading" class="meta">Cargando datos…</div>
             <table id="dataTable" style="display:none" aria-describedby="tabla-datos"></table>
-
-            <div class="bottom-bar">
-              <div>
-                <button id="btnMore" class="primary" style="display:none">Mostrar más</button>
-                <span class="small-muted" id="endInfo"></span>
-              </div>
-              <div class="small-muted">Filas totales: <span id="totalRows">—</span></div>
-            </div>
           </div>
         </div>
-
-        <div id="preview" class="card" style="margin-top:12px;display:none"></div>
       </main>
     </div>
 
-    <!-- Modal -->
     <div id="modalBack" class="modal-back">
       <div class="modal">
         <div style="display:flex;justify-content:space-between;align-items:center">
           <h3 id="modalTitle" style="margin:0">Detalle</h3>
-          <div style="display:flex;gap:8px">
-            <button id="copyRow" class="ghost">Copiar fila (CSV)</button>
-            <button id="closeModal" class="ghost">Cerrar</button>
-          </div>
+          <button id="closeModal" class="ghost">Cerrar</button>
         </div>
         <div id="modalBody" style="margin-top:10px"></div>
       </div>
@@ -200,60 +144,158 @@
   </div>
 
 <script>
-/* =============== CONFIG =============== */
-/* URL CSV pública */
+/* ================= CONFIG ================= */
 const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRe5o92LzVVZNSuqn2eUpGf3t1nr_rf58V37ypPjGldYnxNg1B9XTrtZCvNSU-VTKdszHXD9WeqE8sk/pub?gid=1700850446&single=true&output=csv";
-
-/* Column defaults (human-friendly names will be normalized) */
-const DEFAULT_VISIBLE_KEYS = ["MUNICIPIO","INSTITUCION","SEDE","TOTAL GENERAL","2024 DOCENTES","CONECTIVIDAD","UBICACION","JORNADA"];
-
-/* Seguridad / UX */
-const HIDE_CONTACTS_BY_DEFAULT = true; // oculta columnas con email/cel en tabla por defecto
-const SUGGEST_LIMIT = 5;
 const DEBOUNCE_MS = 250;
+const SUGGEST_LIMIT = 3;
+const PRIORITY_FIELDS = ["SEDE","INSTITUCION","MUNICIPIO","TOTAL GENERAL","UBICACION"]; // ranking priority
+const HIDE_DANE_CODES = true; // we will not show DANE codes in suggestions
 
-/* =============== Estado =============== */
-let rawRows = [];     // raw arrays from CSV
-let headerRow = [];   // row index 2 (fila 3) normalized visible names
-let sectionRow1 = []; // optional fila1
-let sectionRow2 = []; // optional fila2
-let rows = [];        // array of objects {visibleHeader: value}
-let filtered = [];    // after filters/search
-let displayed = 0;    // how many rows displayed
-let pageSize = 10;
-let indices = {municipio: -1, institucion: -1, total_general: -1, docentes_2024: -1, conectividad: -1};
-let preferCols = [];  // visible columns preference
+/* ================ Estado ================ */
+let rawRows = [];
+let headerRow = []; // array of {visible, key}
+let rows = []; // array of objects {visibleField: value, __meta: {total_general:number, normalized: {...}}}
+let filtered = [];
+let indices = {}; // indices for key fields
+let queryCache = new Map();
 
-/* =============== Utilidades (normalización y seguridad) =============== */
-
-function safeText(s){ return s === undefined || s === null ? '' : String(s); }
-
-// fix mojibake attempt
-function fixEncoding(s){
-  try { return decodeURIComponent(escape(s)); } catch(e){ return s; }
-}
-
-// normalize single header cell to Visible form (no diacritics) and key
+/* ================ Utilidades ================ */
+function safeText(x){ return x===undefined||x===null ? '' : String(x); }
+function fixEncoding(s){ try { return decodeURIComponent(escape(s)); } catch(e){ return s; } }
 function normalizeCell(raw){
   const fixed = fixEncoding(safeText(raw)).replace(/[\u0000-\u001F]/g,'').trim();
   const noAccents = fixed.normalize('NFD').replace(/\p{Diacritic}/gu,'');
   const visible = noAccents.replace(/\s+/g,' ').replace(/\u00A0/g,' ').trim();
   const key = visible.toUpperCase().replace(/[^A-Z0-9]+/g,'_').replace(/^_|_$/g,'');
-  return {visible: visible || '', key};
+  return {visible, key};
+}
+function normalizeForSearch(s){
+  if(s===undefined||s===null) return '';
+  return fixEncoding(String(s)).normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase();
+}
+function parseNumber(v){
+  if(v === undefined || v === null) return NaN;
+  const s = String(v).replace(/[^\d\-\.\,]/g,'').replace(/\./g,'').replace(',','.');
+  const n = Number(s);
+  return isNaN(n) ? NaN : n;
 }
 
-// escape text for CSV copying (simple)
-function csvEscape(s){
-  if(s === undefined || s === null) return '';
-  const t = String(s).replace(/"/g,'""');
-  if(t.includes(',') || t.includes('"') || t.includes('\n')) return `"${t}"`;
-  return t;
+/* Create mapping from normalized chars to original indices for highlighting */
+function mapNormToOriginalIndices(original){
+  const orig = safeText(original);
+  const norm = orig.normalize('NFD').replace(/\p{Diacritic}/gu,'');
+  // often lengths match; to be safe, we'll map per character index
+  const mapping = [];
+  let origIdx = 0;
+  for(let i=0;i<orig.length;i++){
+    const oChar = orig[i];
+    const nChar = oChar.normalize('NFD').replace(/\p{Diacritic}/gu,'');
+    // treat mapping as one-to-one per index (works for most chars)
+    mapping.push(i);
+  }
+  return {orig, norm: norm.toLowerCase(), mapping};
 }
 
-// detect index by visible label (exact or includes fallback)
-function findIdxByLabel(label){
-  if(!label) return -1;
-  const U = label.toUpperCase();
+/* find positions of query in original using normalized mapping */
+function findNormalizedMatches(original, query){
+  const q = query.normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase();
+  if(!q) return [];
+  const {orig, norm, mapping} = mapNormToOriginalIndices(original);
+  const positions = [];
+  let startIndex = 0;
+  while(true){
+    const idx = norm.indexOf(q, startIndex);
+    if(idx === -1) break;
+    const origStart = mapping[idx] !== undefined ? mapping[idx] : idx;
+    const origEnd = (mapping[idx + q.length - 1] !== undefined) ? mapping[idx + q.length - 1] + 1 : origStart + q.length;
+    positions.push([origStart, origEnd]);
+    startIndex = idx + q.length;
+  }
+  return positions;
+}
+
+/* Build a DocumentFragment with matches wrapped in <strong> for display (safe) */
+function buildHighlightedFragment(text, query){
+  const frag = document.createDocumentFragment();
+  if(!text) { frag.appendChild(document.createTextNode('')); return frag; }
+  const matches = findNormalizedMatches(text, query);
+  if(matches.length === 0){ frag.appendChild(document.createTextNode(text)); return frag; }
+  let cursor = 0;
+  for(const [s,e] of matches){
+    if(s > cursor){
+      frag.appendChild(document.createTextNode(text.slice(cursor, s)));
+    }
+    const strong = document.createElement('strong');
+    strong.textContent = text.slice(s, e);
+    frag.appendChild(strong);
+    cursor = e;
+  }
+  if(cursor < text.length) frag.appendChild(document.createTextNode(text.slice(cursor)));
+  return frag;
+}
+
+/* safe compare includes (normalized) */
+function containsNormalized(fieldValue, q){
+  if(!q) return false;
+  return normalizeForSearch(fieldValue).includes(normalizeForSearch(q));
+}
+function startsWithNormalized(fieldValue, q){
+  if(!q) return false;
+  return normalizeForSearch(fieldValue).startsWith(normalizeForSearch(q));
+}
+
+/* ================= CSV load & preprocessing ================= */
+function loadCSV(){
+  document.getElementById('loading').textContent = 'Cargando CSV…';
+  Papa.parse(CSV_URL, { download: true, skipEmptyLines:false, complete: function(res){
+    rawRows = res.data.map(r => r.map(c => c === undefined ? '' : String(c)));
+    while(rawRows.length && rawRows[rawRows.length - 1].every(x=>x.trim()==='')) rawRows.pop();
+    if(rawRows.length < 3){
+      document.getElementById('loading').textContent = 'CSV inválido: se esperaban al menos 3 filas (secciones + encabezado).';
+      return;
+    }
+    // assume row 0 & 1 are sections, row 2 header
+    headerRow = rawRows[2].map(cell => normalizeCell(cell));
+    // rows from index 3
+    rows = rawRows.slice(3).map(r => {
+      const obj = {};
+      for(let i=0;i<headerRow.length;i++){
+        const key = headerRow[i] ? headerRow[i].visible : `C${i}`;
+        obj[key] = r[i] === undefined ? '' : r[i];
+      }
+      // add normalized meta for search & total
+      const tg = parseNumber(obj["TOTAL GENERAL"] || obj["TOTA LGENERAL"] || obj["TOTAL_GENERAL"] || obj["TOTAL"] || 0);
+      obj.__meta = {
+        total_general: isNaN(tg) ? 0 : tg,
+        norm_sede: normalizeForSearch(obj["SEDE"] || ''),
+        norm_inst: normalizeForSearch(obj["INSTITUCION"] || ''),
+        norm_mun: normalizeForSearch(obj["MUNICIPIO"] || ''),
+        norm_ubic: normalizeForSearch(obj["UBICACION"] || ''),
+        fulltext: normalizeForSearch(Object.values(obj).join(' '))
+      };
+      return obj;
+    });
+
+    // determine indices existence (not numeric indices, we use header positions via names)
+    indices.municipio = findHeaderVisible("MUNICIPIO");
+    indices.institucion = findHeaderVisible("INSTITUCION");
+    indices.sede = findHeaderVisible("SEDE");
+    indices.total_general = findHeaderVisible("TOTAL GENERAL") !== -1 ? findHeaderVisible("TOTAL GENERAL") : findHeaderVisible("TOTAL_GENERAL");
+    indices.ubicacion = findHeaderVisible("UBICACION");
+    indices.status = findHeaderVisible("STATUS");
+
+    // initial filtered = all
+    filtered = rows.slice();
+
+    // init UI
+    initUI();
+  }, error: function(err){
+    document.getElementById('loading').textContent = 'Error leyendo CSV: ' + (err && err.message ? err.message : JSON.stringify(err));
+  }});
+}
+
+function findHeaderVisible(name){
+  const U = (name||'').toUpperCase();
   for(let i=0;i<headerRow.length;i++){
     if(headerRow[i].visible.toUpperCase() === U) return i;
   }
@@ -263,462 +305,383 @@ function findIdxByLabel(label){
   return -1;
 }
 
-/* =============== CSV Load & Parse =============== */
-
-function loadCSV(){
-  document.getElementById('loading').textContent = 'Cargando CSV…';
-  Papa.parse(CSV_URL, { download:true, skipEmptyLines:false, complete: function(res){
-    rawRows = res.data.map(r => r.map(c => c === undefined ? '' : String(c)));
-    // trim trailing empty rows
-    while(rawRows.length && rawRows[rawRows.length-1].every(x=>x.trim()==='')) rawRows.pop();
-
-    if(rawRows.length < 3){
-      document.getElementById('loading').textContent = 'CSV inválido: se esperaban al menos 3 filas (2 filas de secciones + 1 fila de encabezado).';
-      return;
-    }
-
-    // detect section rows (fila1 = rawRows[0], fila2 = rawRows[1], headerRow = rawRows[2])
-    sectionRow1 = rawRows[0].slice();
-    sectionRow2 = rawRows[1].slice();
-    headerRow = rawRows[2].map(cell => normalizeCell(cell));
-
-    // build object rows from row index 3 onwards
-    rows = rawRows.slice(3).map(r => {
-      const obj = {};
-      for(let i=0;i<headerRow.length;i++){
-        const k = headerRow[i] ? headerRow[i].visible : `C${i}`;
-        obj[k] = r[i] === undefined ? '' : r[i];
-      }
-      return obj;
-    });
-
-    // detect key indices
-    indices.municipio = findIdxByLabel('MUNICIPIO');
-    indices.institucion = findIdxByLabel('INSTITUCION');
-    indices.total_general = findIdxByLabel('TOTAL GENERAL') !== -1 ? findIdxByLabel('TOTAL GENERAL') : findIdxByLabel('TOTAL_GENERAL');
-    indices.docentes_2024 = findIdxByLabel('2024 DOCENTES') !== -1 ? findIdxByLabel('2024 DOCENTES') : findIdxByLabel('2024_DOCENTES');
-    indices.conectividad = findIdxByLabel('CONECTIVIDAD');
-
-    // build initial filtered
-    filtered = rows.slice();
-    // init UI now
-    initUI();
-  }, error: function(err){
-    document.getElementById('loading').textContent = 'Error leyendo CSV: ' + (err && err.message ? err.message : JSON.stringify(err));
-  }});
-}
-
-/* =============== UI Init =============== */
-
+/* ================= UI init ================= */
 function initUI(){
   document.getElementById('loading').style.display = 'none';
   document.getElementById('dataTable').style.display = '';
-  document.getElementById('totalRows').textContent = rows.length;
-  pageSize = parseInt(document.getElementById('pageSize').value,10) || 10;
+  // populate municipio filter
+  populateMunicipios();
 
-  // build column chooser
-  buildColChooser();
-
-  // fill filters using indices
-  populateFilterOptions();
-
-  // restore saved columns preference
-  const saved = localStorage.getItem('bd_prefer_cols');
-  if(saved){
-    try{ preferCols = JSON.parse(saved); }catch(e){ preferCols = []; }
-  } else {
-    preferCols = DEFAULT_VISIBLE_KEYS.slice();
-  }
-
-  // ensure preferCols exist in header visible names, else fallback
-  const allVisible = headerRow.map(h=>h.visible);
-  preferCols = preferCols.filter(p => allVisible.includes(p));
-  if(preferCols.length === 0){
-    // fallback to first 8 headers
-    preferCols = allVisible.slice(0,8);
-  }
-
-  document.getElementById('visibleColsList').textContent = preferCols.join(' · ');
-
-  // event listeners
-  document.getElementById('applyFilters').addEventListener('click', applyFilters);
-  document.getElementById('resetFilters').addEventListener('click', resetFilters);
-  document.getElementById('pageSize').addEventListener('change', function(){ pageSize = +this.value; resetTable(); });
-  document.getElementById('reload').addEventListener('click', ()=> location.reload());
-  document.getElementById('saveCols').addEventListener('click', saveCols);
-  document.getElementById('resetCols').addEventListener('click', resetCols);
-  document.getElementById('toggleHideContacts').checked = HIDE_CONTACTS_BY_DEFAULT;
-  document.getElementById('toggleHideContacts').addEventListener('change', ()=> { resetTable(); });
-
-  // search box debounce
+  // attach search handlers
   const sb = document.getElementById('searchBox');
   let debounceTimer = null;
-  sb.addEventListener('input', (e) => {
+  let activeIndex = -1; // for keyboard nav
+
+  sb.addEventListener('input', (e)=> {
     clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(()=> onSearchInput(e.target.value), DEBOUNCE_MS);
+    debounceTimer = setTimeout(()=> {
+      onSearchInput(e.target.value);
+    }, DEBOUNCE_MS);
   });
-  document.getElementById('clearBtn').addEventListener('click', ()=> { sb.value=''; filtered = rows.slice(); resetTable(); renderStats(); document.getElementById('suggestList').style.display='none'; });
 
-  // modal controls
+  // keyboard navigation (up, down, enter, esc)
+  sb.addEventListener('keydown', (e)=>{
+    const list = document.getElementById('suggestList');
+    if(list.style.display === 'none') return;
+    const items = Array.from(list.querySelectorAll('.suggest-item'));
+    if(e.key === 'ArrowDown'){
+      e.preventDefault();
+      activeIndex = Math.min(items.length - 1, activeIndex + 1);
+      updateActiveSuggestion(items, activeIndex);
+    } else if(e.key === 'ArrowUp'){
+      e.preventDefault();
+      activeIndex = Math.max(0, activeIndex - 1);
+      updateActiveSuggestion(items, activeIndex);
+    } else if(e.key === 'Enter'){
+      e.preventDefault();
+      if(activeIndex === -1) activeIndex = 0;
+      if(items[activeIndex]) items[activeIndex].click();
+    } else if(e.key === 'Escape'){
+      clearSuggestions();
+      sb.blur();
+    }
+  });
+
+  // clear button
+  document.getElementById('clearBtn').addEventListener('click', ()=> {
+    sb.value = '';
+    clearSuggestions();
+    filtered = rows.slice();
+    renderTableReset();
+  });
+
+  // click outside closes suggestions (and clears them)
+  document.addEventListener('click', (ev)=>{
+    const list = document.getElementById('suggestList');
+    const box = document.getElementById('searchBox');
+    if(!list.contains(ev.target) && ev.target !== box){
+      clearSuggestions();
+    }
+  });
+
+  // suggestion selection by click handled in renderSuggestions
+  document.getElementById('applyFilters').addEventListener('click', ()=>{
+    applyFiltersFromUI();
+  });
+  document.getElementById('resetFilters').addEventListener('click', ()=>{
+    document.getElementById('filterMunicipio').value = '';
+    document.getElementById('activeFilters').textContent = '';
+    filtered = rows.slice();
+    renderTableReset();
+  });
+
+  // modal close
   document.getElementById('closeModal').addEventListener('click', ()=> document.getElementById('modalBack').style.display='none');
-  document.getElementById('modalBack').addEventListener('click', (ev)=> { if(ev.target === document.getElementById('modalBack')) document.getElementById('modalBack').style.display='none'; });
-  document.getElementById('copyRow').addEventListener('click', copyModalRowAsCSV);
 
-  // initial render
-  resetTable();
-  renderStats();
+  // initial render of table
+  renderTableReset();
 }
 
-/* =============== Column chooser UI =============== */
-
-function buildColChooser(){
-  const container = document.getElementById('colChooser');
-  container.innerHTML = '';
-  headerRow.forEach(h => {
-    const label = document.createElement('label');
-    label.style.display = 'flex';
-    label.style.alignItems = 'center';
-    label.style.gap = '8px';
-    const chk = document.createElement('input');
-    chk.type = 'checkbox';
-    chk.value = h.visible;
-    // default select if in default list
-    chk.checked = DEFAULT_VISIBLE_KEYS.includes(h.visible);
-    label.appendChild(chk);
-    const span = document.createElement('span');
-    span.textContent = h.visible || '(sin nombre)';
-    span.style.fontSize = '13px';
-    label.appendChild(span);
-    container.appendChild(label);
-  });
-}
-
-function saveCols(){
-  const checks = document.querySelectorAll('#colChooser input[type=checkbox]');
-  preferCols = [];
-  checks.forEach(c => { if(c.checked) preferCols.push(c.value); });
-  if(preferCols.length === 0){
-    alert('Selecciona al menos una columna');
-    return;
-  }
-  localStorage.setItem('bd_prefer_cols', JSON.stringify(preferCols));
-  document.getElementById('visibleColsList').textContent = preferCols.join(' · ');
-  resetTable();
-}
-
-function resetCols(){
-  localStorage.removeItem('bd_prefer_cols');
-  preferCols = DEFAULT_VISIBLE_KEYS.slice();
-  document.querySelectorAll('#colChooser input[type=checkbox]').forEach(c => {
-    c.checked = preferCols.includes(c.value);
-  });
-  document.getElementById('visibleColsList').textContent = preferCols.join(' · ');
-  resetTable();
-}
-
-/* =============== Filters population and apply =============== */
-
-function populateFilterOptions(){
-  const setMun = new Set(); const setInst = new Set();
+/* populate municipios filter */
+function populateMunicipios(){
+  const setM = new Set();
   rows.forEach(r => {
-    const mun = safeText(r[headerRow[indices.municipio]?.visible]);
-    const inst = safeText(r[headerRow[indices.institucion]?.visible]);
-    if(mun.trim()) setMun.add(mun.trim());
-    if(inst.trim()) setInst.add(inst.trim());
+    const v = safeText(r[headerRow[indices.municipio]?.visible]);
+    if(v.trim()) setM.add(v.trim());
   });
-  const selMun = document.getElementById('filterMunicipio');
-  Array.from(setMun).sort((a,b)=>a.localeCompare(b)).forEach(v => {
-    const opt = document.createElement('option'); opt.value = v; opt.textContent = v; selMun.appendChild(opt);
-  });
-  const selInst = document.getElementById('filterInstitucion');
-  Array.from(setInst).sort((a,b)=>a.localeCompare(b)).forEach(v => {
-    const opt = document.createElement('option'); opt.value = v; opt.textContent = v; selInst.appendChild(opt);
+  const sel = document.getElementById('filterMunicipio');
+  Array.from(setM).sort((a,b)=>a.localeCompare(b)).forEach(v => {
+    const opt = document.createElement('option'); opt.value = v; opt.textContent = v; sel.appendChild(opt);
   });
 }
 
-function applyFilters(){
-  const m = document.getElementById('filterMunicipio').value.trim();
-  const i = document.getElementById('filterInstitucion').value.trim();
-  const c = document.getElementById('filterConectividad').value.trim();
-  filtered = rows.filter(r => {
-    let ok = true;
-    if(m) {
-      const val = safeText(r[headerRow[indices.municipio]?.visible]).trim();
-      ok = ok && val === m;
-    }
-    if(i){
-      const val = safeText(r[headerRow[indices.institucion]?.visible]).trim();
-      ok = ok && val === i;
-    }
-    if(c){
-      const val = safeText(r[headerRow[indices.conectividad]?.visible]).toUpperCase();
-      ok = ok && ((c === 'SI' && val.includes('SI')) || (c === 'NO' && !val.includes('SI')));
-    }
-    return ok;
-  });
-  document.getElementById('activeFilters').textContent = [m ? `Municipio: ${m}` : '', i? `Institución: ${i}` : '', c? `Conectividad: ${c}` : ''].filter(x=>x).join(' · ');
-  resetTable();
-  renderStats();
-}
+/* ================= Search behavior (new improved) ================= */
 
-function resetFilters(){
-  document.getElementById('filterMunicipio').value='';
-  document.getElementById('filterInstitucion').value='';
-  document.getElementById('filterConectividad').value='';
-  document.getElementById('activeFilters').textContent = '';
-  filtered = rows.slice();
-  resetTable();
-  renderStats();
-}
+/* Build candidate list based on priority and scoring */
+function searchCandidates(q){
+  if(!q || q.trim().length < 2) return [];
+  const qNorm = normalizeForSearch(q);
 
-/* =============== Search predictivo =============== */
+  // cache
+  if(queryCache.has(qNorm)) return queryCache.get(qNorm);
 
-function onSearchInput(q){
-  q = safeText(q).trim();
-  if(q.length < 2){
-    document.getElementById('suggestList').style.display = 'none';
-    return;
-  }
-  const matches = getTopMatches(q, SUGGEST_LIMIT);
-  renderSuggestList(matches);
-}
-
-function getTopMatches(q, limit){
-  const Q = q.toLowerCase();
-  const scored = [];
+  const candidates = [];
   for(let i=0;i<rows.length;i++){
-    // create a compact searchable string (municipio + institucion + sede + totalGeneral)
-    const muni = safeText(rows[i][headerRow[indices.municipio]?.visible]).toLowerCase();
-    const inst = safeText(rows[i][headerRow[indices.institucion]?.visible]).toLowerCase();
-    const all = Object.values(rows[i]).join(' ').toLowerCase();
-    let score = -1;
-    if(muni.includes(Q)) score = 1;
-    else if(inst.includes(Q)) score = 2;
-    else if(all.includes(Q)) score = 3;
-    if(score !== -1) scored.push({i,score});
+    const r = rows[i];
+    let matched = false;
+    let score = 999;
+    let matchedField = null;
+    // Priority: SEDE, INSTITUCION, MUNICIPIO, UBICACION, then TOTAL GENERAL (as tie-break)
+    const sSede = r.__meta.norm_sede || '';
+    const sInst = r.__meta.norm_inst || '';
+    const sMun = r.__meta.norm_mun || '';
+    const sUbic = r.__meta.norm_ubic || '';
+    // startsWith checks
+    if(sSede.startsWith(qNorm)){ matched = true; score = 1; matchedField = 'SEDE'; }
+    else if(sInst.startsWith(qNorm)){ matched = true; score = 2; matchedField = 'INSTITUCION'; }
+    else if(sMun.startsWith(qNorm)){ matched = true; score = 3; matchedField = 'MUNICIPIO'; }
+    else if(sUbic.startsWith(qNorm)){ matched = true; score = 5; matchedField = 'UBICACION'; }
+    // contains checks if no startsWith
+    else if(sSede.includes(qNorm)){ matched = true; score = 4; matchedField = 'SEDE'; }
+    else if(sInst.includes(qNorm)){ matched = true; score = 6; matchedField = 'INSTITUCION'; }
+    else if(sMun.includes(qNorm)){ matched = true; score = 7; matchedField = 'MUNICIPIO'; }
+    else if(sUbic.includes(qNorm)){ matched = true; score = 9; matchedField = 'UBICACION'; }
+    // also allow search into fulltext as fallback
+    else if(r.__meta.fulltext.includes(qNorm)){ matched = true; score = 10; matchedField = 'OTHER'; }
+
+    if(matched){
+      // position penalty (earlier is better)
+      const posSede = sSede.indexOf(qNorm);
+      const pos = posSede >= 0 ? posSede : (sInst.indexOf(qNorm)>=0 ? sInst.indexOf(qNorm) : (sMun.indexOf(qNorm)>=0 ? sMun.indexOf(qNorm) : 999));
+      const finalScore = score + (pos / 1000);
+      candidates.push({row: r, score: finalScore, matchedField});
+    }
   }
-  scored.sort((a,b) => a.score - b.score);
-  return scored.slice(0,limit).map(s => ({index: s.i, row: rows[s.i]}));
-}
 
-function renderSuggestList(list){
-  const el = document.getElementById('suggestList');
-  el.innerHTML = '';
-  if(!list || list.length === 0){ el.style.display = 'none'; return; }
-  list.forEach(it => {
-    const div = document.createElement('div'); div.className='suggest-item';
-    const muni = safeText(it.row[headerRow[indices.municipio]?.visible]);
-    const inst = safeText(it.row[headerRow[indices.institucion]?.visible]);
-    const tg = safeText(it.row[headerRow[indices.total_general]?.visible]);
-    div.innerHTML = `<strong>${escapeHtml(inst || '(sin institución)')} — ${escapeHtml(muni)}</strong><div class="meta">Total General: ${escapeHtml(tg)}</div>`;
-    div.addEventListener('click', ()=> {
-      filtered = [ it.row ];
-      document.getElementById('searchBox').value = '';
-      document.getElementById('suggestList').style.display = 'none';
-      document.getElementById('activeFilters').textContent = `Búsqueda: ${inst} · ${muni}`;
-      resetTable();
-      renderStats();
-    });
-    el.appendChild(div);
+  // sort by score asc, then total_general desc, then alphabetically by SEDE/INSTITUCION
+  candidates.sort((a,b) => {
+    if(a.score !== b.score) return a.score - b.score;
+    const ta = (a.row.__meta.total_general || 0);
+    const tb = (b.row.__meta.total_general || 0);
+    if(ta !== tb) return tb - ta; // higher total first
+    const keyA = safeText(a.row["SEDE"] || a.row["INSTITUCION"] || '').localeCompare(safeText(b.row["SEDE"] || b.row["INSTITUCION"] || ''));
+    return keyA;
   });
-  el.style.display = 'block';
+
+  // unique by SEDE+INSTITUCION+MUNICIPIO to avoid duplicates in suggestions
+  const seen = new Set();
+  const unique = [];
+  for(const c of candidates){
+    const key = `${safeText(c.row["SEDE"]).toLowerCase()}|${safeText(c.row["INSTITUCION"]).toLowerCase()}|${safeText(c.row["MUNICIPIO"]).toLowerCase()}`;
+    if(!seen.has(key)){
+      unique.push(c);
+      seen.add(key);
+    }
+    if(unique.length >= 50) break; // keep some margin if needed
+  }
+
+  // cache top candidates list (we will pick top 3 later)
+  queryCache.set(qNorm, unique);
+  return unique;
 }
 
-/* =============== Table rendering (paginated "show more") =============== */
+/* get representative sede for an institution (max total_general) */
+function getRepresentativeSedeForInstitution(institucion, preferMunicipio){
+  if(!institucion) return null;
+  const list = rows.filter(r => (safeText(r["INSTITUCION"]) || '').toLowerCase() === institucion.toLowerCase());
+  if(list.length === 0) return null;
+  // if preferMunicipio provided, try prefer that
+  if(preferMunicipio){
+    const sameMun = list.filter(r => (safeText(r["MUNICIPIO"]) || '').toLowerCase() === preferMunicipio.toLowerCase());
+    if(sameMun.length) list.splice(0, list.length, ...sameMun);
+  }
+  list.sort((a,b) => (b.__meta.total_general || 0) - (a.__meta.total_general || 0));
+  return list[0]; // top by total_general
+}
 
-function resetTable(){
-  displayed = 0;
+/* Build the 3-line suggestion element safely with highlights, and handle Status 'Cierre' */
+function buildSuggestionElement(candidate, query){
+  const r = candidate.row;
+  const q = query;
+  const matchedField = candidate.matchedField || 'SEDE';
+  // Determine lines per the rules:
+  // Line1: matchedField value (or fallback)
+  // Line2: INSTITUCION (or MUNICIPIO if line1=INSTITUCION)
+  // Line3: MUNICIPIO or SEDE representative depending on matchedField; show Status "Cierre" if present for that row
+  let line1Val = '';
+  let line2Val = '';
+  let line3Val = '';
+
+  const instVal = safeText(r["INSTITUCION"]) || '';
+  const sedeVal = safeText(r["SEDE"]) || '';
+  const muniVal = safeText(r["MUNICIPIO"]) || '';
+  const ubicVal = safeText(r["UBICACION"]) || '';
+  const statusVal = safeText(r["STATUS"] || r["Status"] || r["status"] || '');
+
+  const hasCierre = /cier/i.test(statusVal); // contains 'cier' covers 'cierre' and variants
+
+  if(matchedField === 'SEDE'){
+    line1Val = sedeVal || instVal;
+    line2Val = instVal || muniVal || '';
+    line3Val = hasCierre ? statusVal : (muniVal || (ubicVal || '—'));
+  } else if(matchedField === 'INSTITUCION'){
+    line1Val = instVal || sedeVal;
+    line2Val = muniVal || '';
+    // pick representative sede by total general
+    const rep = getRepresentativeSedeForInstitution(instVal, muniVal);
+    if(rep){
+      const repSede = safeText(rep["SEDE"]) || '';
+      line3Val = hasCierre && /cier/i.test(safeText(rep["STATUS"] || '')) ? safeText(rep["STATUS"]) : (repSede || '—');
+    } else {
+      line3Val = sedeVal || (hasCierre ? statusVal : '—');
+    }
+  } else if(matchedField === 'MUNICIPIO'){
+    line1Val = muniVal || instVal || sedeVal;
+    line2Val = instVal || sedeVal || '';
+    const rep = getRepresentativeSedeForInstitution(instVal, muniVal);
+    if(rep){
+      line3Val = hasCierre && /cier/i.test(safeText(rep["STATUS"] || '')) ? safeText(rep["STATUS"]) : safeText(rep["SEDE"] || '—');
+    } else {
+      line3Val = sedeVal || (hasCierre ? statusVal : '—');
+    }
+  } else if(matchedField === 'UBICACION'){
+    line1Val = ubicVal || sedeVal || instVal;
+    line2Val = instVal || muniVal || '';
+    line3Val = sedeVal || muniVal || (hasCierre ? statusVal : '—');
+  } else {
+    // OTHER fallback
+    line1Val = sedeVal || instVal || muniVal;
+    line2Val = instVal || muniVal || '';
+    line3Val = hasCierre ? statusVal : (sedeVal || '—');
+  }
+
+  // create DOM element
+  const div = document.createElement('div');
+  div.className = 'suggest-item';
+  div.tabIndex = 0;
+  // create line1 (main) - highlighted
+  const line1 = document.createElement('div'); line1.className = 'suggest-line-main';
+  line1.appendChild(buildHighlightedFragment(line1Val, q));
+  // create line2 and line3
+  const line2 = document.createElement('div'); line2.className = 'suggest-line-sub';
+  line2.appendChild(buildHighlightedFragment(line2Val, q));
+  const line3 = document.createElement('div'); line3.className = 'suggest-line-sub';
+  line3.appendChild(buildHighlightedFragment(line3Val, q));
+
+  // assemble
+  div.appendChild(line1);
+  div.appendChild(line2);
+  div.appendChild(line3);
+
+  // click handler: select this candidate
+  div.addEventListener('click', ()=> {
+    // If the candidate is a clear single-row (we have the row), then set filtered to that row
+    filtered = [ r ];
+    document.getElementById('activeFilters').textContent = `Sugerencia: ${line1Val}`;
+    renderTableReset();
+    clearSuggestions();
+    // open modal for detail (optional) - we'll show the row in table, user can click to open modal
+    // scroll into view first row
+    const table = document.getElementById('dataTable');
+    if(table) table.scrollIntoView({behavior:'smooth', block:'start'});
+  });
+
+  return div;
+}
+
+/* render suggestions (top 3) */
+function renderSuggestionsForQuery(q){
+  const listEl = document.getElementById('suggestList');
+  listEl.innerHTML = '';
+  if(!q || q.trim().length < 2){ listEl.style.display = 'none'; return; }
+  const candidates = searchCandidates(q);
+  if(!candidates || candidates.length === 0){
+    const none = document.createElement('div'); none.className = 'suggest-item';
+    none.textContent = 'No se encontraron sugerencias';
+    listEl.appendChild(none); listEl.style.display = 'block'; return;
+  }
+  // take top SUGGEST_LIMIT
+  const top = candidates.slice(0, SUGGEST_LIMIT);
+  top.forEach(c => {
+    const el = buildSuggestionElement(c, q);
+    listEl.appendChild(el);
+  });
+  // show list
+  listEl.style.display = 'block';
+  // reset keyboard active index management
+  setTimeout(()=> {
+    // focus first suggestion? keep keyboard nav starting at -1; user can arrow or click
+  }, 0);
+}
+
+/* clear suggestions */
+function clearSuggestions(){
+  const listEl = document.getElementById('suggestList');
+  listEl.innerHTML = '';
+  listEl.style.display = 'none';
+}
+
+/* on search input */
+function onSearchInput(val){
+  const q = safeText(val).trim();
+  if(q.length < 2){ clearSuggestions(); return; }
+  renderSuggestionsForQuery(q);
+}
+
+/* keyboard active suggestion helper */
+function updateActiveSuggestion(items, activeIndex){
+  items.forEach((it, idx)=> {
+    if(idx === activeIndex) it.classList.add('active'); else it.classList.remove('active');
+  });
+}
+
+/* ================= Table rendering (kept simple) ================= */
+function renderTableReset(){
   const table = document.getElementById('dataTable');
   table.innerHTML = '';
-  document.getElementById('endInfo').textContent = '';
-  document.getElementById('resultsCount').textContent = filtered.length;
-  renderMore();
-}
-
-function renderMore(){
-  const table = document.getElementById('dataTable');
-  const start = displayed;
-  const toShow = filtered.slice(start, start + pageSize);
-  // create header if first time
-  if(displayed === 0){
-    const thead = document.createElement('thead');
-    const tr = document.createElement('tr');
-    const cols = getVisibleCols();
-    cols.forEach(c => {
-      const th = document.createElement('th');
-      th.textContent = c;
-      tr.appendChild(th);
-    });
-    thead.appendChild(tr);
-    table.appendChild(thead);
-    const tbody = document.createElement('tbody'); tbody.id = 'tbody'; table.appendChild(tbody);
-  }
-  const tbody = document.getElementById('tbody');
-  const cols = getVisibleCols();
+  // show header with a few columns (we keep minimal for speed)
+  const thead = document.createElement('thead');
+  const trh = document.createElement('tr');
+  const visibleCols = ["MUNICIPIO","INSTITUCION","SEDE","TOTAL GENERAL","STATUS"];
+  visibleCols.forEach(c => {
+    const th = document.createElement('th'); th.textContent = c;
+    trh.appendChild(th);
+  });
+  thead.appendChild(trh); table.appendChild(thead);
+  const tbody = document.createElement('tbody');
+  const toShow = filtered.slice(0, 100); // cap for safety
   toShow.forEach(row => {
     const tr = document.createElement('tr');
-    cols.forEach(col => {
-      const td = document.createElement('td');
-      let val = safeText(row[col]);
-      // optionally hide contacts
-      if(document.getElementById('toggleHideContacts').checked && /RECTOR|DOCENTE|EMAIL|CEL|TEL/i.test(col)){
-        // mask value
-        if(val && val.length>0) val = '[oculto]';
-      }
-      td.textContent = val;
-      tr.appendChild(td);
-    });
-    tr.addEventListener('click', ()=> openModal(row));
+    // MUNICIPIO
+    const tdMun = document.createElement('td'); tdMun.textContent = safeText(row["MUNICIPIO"]); tr.appendChild(tdMun);
+    const tdInst = document.createElement('td'); tdInst.textContent = safeText(row["INSTITUCION"]); tr.appendChild(tdInst);
+    const tdSede = document.createElement('td'); tdSede.textContent = safeText(row["SEDE"]); tr.appendChild(tdSede);
+    const tdTG = document.createElement('td'); tdTG.textContent = safeText(row["TOTAL GENERAL"]); tr.appendChild(tdTG);
+    const tdStatus = document.createElement('td'); tdStatus.textContent = safeText(row["STATUS"] || row["Status"] || ''); tr.appendChild(tdStatus);
+    // click opens modal detail
+    tr.addEventListener('click', ()=> openModalDetail(row));
     tbody.appendChild(tr);
   });
-
-  displayed += toShow.length;
+  table.appendChild(tbody);
   document.getElementById('resultsCount').textContent = filtered.length;
-  document.getElementById('totalRows').textContent = rows.length;
-  if(displayed < filtered.length){
-    document.getElementById('btnMore').style.display = '';
-    document.getElementById('endInfo').textContent = `Mostrando ${displayed} de ${filtered.length}`;
-  } else {
-    document.getElementById('btnMore').style.display = 'none';
-    document.getElementById('endInfo').textContent = `Mostrando ${filtered.length} resultados.`;
-  }
 }
 
-/* get visible columns based on preferCols but fallbacks handled */
-function getVisibleCols(){
-  const all = headerRow.map(h=>h.visible);
-  // ensure preferCols exists; if empty, choose default first 10
-  let cols = preferCols && preferCols.length ? preferCols.slice() : DEFAULT_VISIBLE_KEYS.slice();
-  // filter out non-existing
-  cols = cols.filter(c => all.includes(c));
-  // ensure at least 5 cols
-  if(cols.length < 5){
-    cols = Array.from(new Set(cols.concat(all.slice(0,8))));
-  }
-  return cols;
-}
-
-/* attach show more button */
-document.getElementById('btnMore').addEventListener('click', renderMore);
-
-/* =============== Modal detail =============== */
-
-function openModal(row){
-  document.getElementById('modalTitle').textContent = row[headerRow[indices.institucion]?.visible] || 'Detalle sede';
+/* render full-modal row detail safely */
+function openModalDetail(row){
+  document.getElementById('modalTitle').textContent = row["INSTITUCION"] || 'Detalle';
   const body = document.getElementById('modalBody');
   body.innerHTML = '';
-  const table = document.createElement('table');
+  const t = document.createElement('table');
   for(const key of Object.keys(row)){
+    // hide DANE codes per your instruction from suggestions; but in modal we can still show them if needed.
+    if(/COD_IE_DANE|COD_SEDE_DANE/i.test(key)) continue; // skip DANE codes
     const tr = document.createElement('tr');
-    const td1 = document.createElement('td'); td1.style.width='35%'; td1.style.fontWeight='700'; td1.textContent = key;
-    const td2 = document.createElement('td');
-    let val = safeText(row[key]);
-    // if hiding contacts, offer masked but keep full in modal but masked by default with button
-    if(/EMAIL|CEL|TEL|RECTOR|DOCENTE/i.test(key) && document.getElementById('toggleHideContacts').checked){
-      td2.textContent = '[oculto en tabla] ' + val;
-    } else {
-      td2.textContent = val;
-    }
-    tr.appendChild(td1); tr.appendChild(td2); table.appendChild(tr);
+    const td1 = document.createElement('td'); td1.style.fontWeight = '700'; td1.style.width = '35%'; td1.textContent = key;
+    const td2 = document.createElement('td'); td2.textContent = safeText(row[key]);
+    tr.appendChild(td1); tr.appendChild(td2);
+    t.appendChild(tr);
   }
-  body.appendChild(table);
+  body.appendChild(t);
   document.getElementById('modalBack').style.display = 'flex';
-  // attach copy data for this row
-  document.getElementById('copyRow').dataset.csv = Object.values(row).map(csvEscape).join(',');
 }
 
-/* copy current modal row as CSV */
-function copyModalRowAsCSV(){
-  const csv = this.dataset.csv || '';
-  navigator.clipboard.writeText(csv).then(()=> alert('Fila copiada al portapapeles (CSV)').catch(()=> alert('Copiado')) );
-}
-
-/* =============== Stats and Chart (cache results) =============== */
-
-let statsCache = null;
-function renderStats(){
-  // compute aggregated KPIs for current "filtered" set (cache by reference length + first/last hash)
-  const key = `${filtered.length}_${filtered[0] ? JSON.stringify(Object.values(filtered[0]).slice(0,3)).slice(0,60) : ''}`;
-  if(statsCache && statsCache.key === key){
-    applyStats(statsCache);
-    return;
-  }
-
-  const idxTotal = headerRow[indices.total_general]?.visible;
-  const idxDoc = headerRow[indices.docentes_2024]?.visible;
-  const idxCon = headerRow[indices.conectividad]?.visible;
-  const idxMun = headerRow[indices.municipio]?.visible;
-
-  let sumTotal = 0, sumDoc = 0, connYes = 0;
-  const countsByMun = {};
-  filtered.forEach(r => {
-    const tg = parseNumber(safeText(r[idxTotal]));
-    if(!isNaN(tg)) sumTotal += tg;
-    const d24 = parseNumber(safeText(r[idxDoc]));
-    if(!isNaN(d24)) sumDoc += d24;
-    const c = safeText(r[idxCon]).toUpperCase();
-    if(c.includes('SI')) connYes++;
-    const m = safeText(r[idxMun]) || 'SIN MUNICIPIO';
-    countsByMun[m] = (countsByMun[m] || 0) + 1;
+/* apply filters UI (simple) */
+function applyFiltersFromUI(){
+  const mun = document.getElementById('filterMunicipio').value.trim();
+  filtered = rows.filter(r => {
+    let ok = true;
+    if(mun) ok = ok && (safeText(r["MUNICIPIO"]).trim() === mun);
+    return ok;
   });
-
-  const connPct = filtered.length ? Math.round((connYes/filtered.length)*100) : 0;
-  const stats = {sumTotal, sumDoc, totalSedes: filtered.length, connPct, countsByMun, key};
-  statsCache = {key, ...stats};
-  applyStats(statsCache);
+  document.getElementById('activeFilters').textContent = mun ? `Municipio: ${mun}` : '';
+  renderTableReset();
 }
 
-function applyStats(s){
-  document.getElementById('kpiTotal').textContent = Intl.NumberFormat('es-CO').format(s.sumTotal || 0);
-  document.getElementById('kpiDoc2024').textContent = Intl.NumberFormat('es-CO').format(s.sumDoc || 0);
-  document.getElementById('kpiSedes').textContent = Intl.NumberFormat('es-CO').format(s.totalSedes || 0);
-  document.getElementById('kpiConn').textContent = `${s.connPct || 0}%`;
-
-  // chart top 8 municipios
-  const items = Object.entries(s.countsByMun).sort((a,b)=>b[1]-a[1]).slice(0,8);
-  const labels = items.map(x=>x[0]);
-  const data = items.map(x=>x[1]);
-
-  renderChart(labels, data);
-}
-
-/* Chart.js render */
-let chartInstance = null;
-function renderChart(labels, data){
-  const ctx = document.getElementById('chartSedes').getContext('2d');
-  if(chartInstance) chartInstance.destroy();
-  chartInstance = new Chart(ctx, {
-    type: 'bar',
-    data: { labels, datasets: [{ label: 'Sedes', data }] },
-    options: { responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}} }
-  });
-}
-
-/* =============== Helpers =============== */
-
-function parseNumber(v){
-  if(v === undefined || v === null) return NaN;
-  const s = String(v).replace(/[^\d\-\.\,]/g,'').replace(/\./g,'').replace(',','.');
-  const n = Number(s);
-  return isNaN(n) ? NaN : n;
-}
-
-function escapeHtml(s){
-  const t = safeText(s);
-  return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
-/* =============== Bootstrap load =============== */
+/* initial render */
 (function init(){
-  // set pageSize from control
-  document.getElementById('pageSize').value = '10';
-  pageSize = 10;
-  // attach more button listener done above
-  document.getElementById('btnMore').addEventListener('click', renderMore);
-  // load CSV
+  // load CSV and start
   loadCSV();
 })();
-
 </script>
 </body>
 </html>
