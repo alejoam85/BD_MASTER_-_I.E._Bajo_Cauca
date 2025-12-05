@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Visor Inteligente de Sedes – Versión 7.0</title>
+
+  <!-- Inter font -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <style>
+    :root{
+      --bg:#f5f7fb;
+      --card:#ffffff;
+      --muted:#6b7280;
+      --primary:#1B66CA;
+      --accent:#FFF59D;
+      --radius:10px;
+      --shadow: 0 6px 18px rgba(17,24,39,0.06);
+      --glass: rgba(255,255,255,0.6);
+      --max-width:1280px;
+    }
+    html,body{
+      height:100%;
+      margin:0;
+      font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      background:var(--bg);
+      color:#0f172a;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+
+    /* Header fijo */
+    header.app-header{
+      position:sticky;
+      top:0;
+      z-index:1200;
+      backdrop-filter: blur(6px);
+      background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(255,255,255,0.85));
+      border-bottom: 1px solid rgba(15,23,42,0.04);
+      display:flex;
+      align-items:center;
+      gap:12px;
+      padding:10px 18px;
+    }
+    header .brand{
+      display:flex;
+      gap:12px;
+      align-items:center;
+    }
+    .logo{
+      width:40px;height:40px;border-radius:8px;background:var(--primary);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;box-shadow:0 6px 18px rgba(27,102,202,0.15);
+    }
+    header h1{
+      margin:0;font-size:16px;font-weight:700;color:var(--primary);
+    }
+    header p.subtitle{ margin:0;font-size:12px;color:var(--muted); }
+
+    .container{
+      max-width:var(--max-width);
+      margin:18px auto;
+      padding:18px;
+    }
+
+    /* Top section: 2 cajas (search) */
+    .top-section{
+      display:flex;
+      gap:16px;
+      align-items:flex-start;
+      margin-bottom:18px;
+    }
+
+    .search-box{
+      background:var(--card);
+      border-radius:var(--radius);
+      padding:12px;
+      box-shadow:var(--shadow);
+      width:100%;
+      border:1px solid rgba(15,23,42,0.04);
+    }
+    .search-header{
+      display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;
+    }
+    .search-box h3{ margin:0;font-size:13px;color:#0f172a;font-weight:600;}
+    .search-box .hint{ font-size:12px;color:var(--muted); }
+
+    .search-input{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      margin-top:8px;
+    }
+    .search-input input{
+      width:100%;
+      padding:10px 12px;
+      border-radius:8px;
+      border:1px solid rgba(15,23,42,0.06);
+      font-size:14px;
+      outline:none;
+      transition:box-shadow .12s, border-color .12s;
+    }
+    .search-input input:focus{
+      box-shadow: 0 6px 18px rgba(27,102,202,0.08);
+      border-color: var(--primary);
+    }
+
+    /* SUGGESTIONS - consistent small box */
+    .suggestions{
+      display:none;
+      margin-top:8px;
+      background:linear-gradient(180deg,#fff,#fbfdff);
+      border:1px solid rgba(15,23,42,0.05);
+      border-radius:8px;
+      box-shadow: 0 6px 18px rgba(2,6,23,0.06);
+      max-height:220px;
+      overflow:auto;
+      padding:6px;
+      font-size:12px;
+    }
+    .suggestion-item{
+      padding:8px 10px;
+      border-radius:6px;
+      margin-bottom:6px;
+      cursor:pointer;
+      transition: background .08s, transform .06s;
+      background:transparent;
+    }
+    .suggestion-item:last-child{ margin-bottom:0; }
+    .suggestion-item:hover{ background: rgba(27,102,202,0.06); transform: translateY(-1px); }
+    .suggestion-item strong{ background: linear-gradient(90deg, rgba(255,245,93,0.35), rgba(255,245,93,0.12)); padding:0 2px; border-radius:3px; font-weight:700; }
+
+    /* Results area */
+    .results-area{
+      background:transparent;
+      margin-bottom:14px;
+    }
+    .results-title{
+      font-size:15px;font-weight:700;margin:0 0 8px 0;color:#0f172a;
+    }
+    .results-card{
+      background:var(--card);
+      border-radius:var(--radius);
+      padding:14px;
+      box-shadow:var(--shadow);
+      border:1px solid rgba(15,23,42,0.04);
+    }
+    .results-info{ font-size:13px;color:var(--muted); margin:0; }
+
+    /* Summary charts wrapper */
+    #summary-charts{
+      display:block;
+      margin-top:14px;
+    }
+    .charts-grid{
+      display:grid;
+      grid-template-columns: 2fr 1fr;
+      gap:18px;
+      margin-top:12px;
+    }
+    .chart-card{
+      background:var(--card);
+      border-radius:10px;
+      padding:12px;
+      box-shadow: 0 6px 18px rgba(13,24,46,0.04);
+      border:1px solid rgba(15,23,42,0.03);
+      min-height:220px;
+    }
+
+    .chart-card h3{ margin:0 0 8px 0;font-size:13px;color:#0f172a;font-weight:700; }
+
+    /* Table container */
+    #table-container{
+      margin-top:14px;
+      overflow:auto;
+      border-radius:10px;
+    }
+    table{
+      width:100%;
+      border-collapse:collapse;
+      font-size:13px;
+      min-width:900px;
+    }
+    th,td{ padding:8px 10px;text-align:left;border-bottom:1px solid rgba(15,23,42,0.04); }
+    th{ background:linear-gradient(180deg,#f3f6fb,#fff);position:sticky;top:0;z-index:2;font-weight:600;color:#0f172a; }
+    tbody tr:nth-child(odd){ background: #fff; }
+    tbody tr:nth-child(even){ background: #fbfdff; }
+
+    /* Mostrar más button */
+    #table-more-btn{
+      display:inline-block;padding:8px 12px;border-radius:8px;border:1px solid rgba(15,23,42,0.06);background:#fff;margin-top:10px;cursor:pointer;
+    }
+    #table-more-btn:hover{ box-shadow:0 6px 18px rgba(2,6,23,0.06); }
+
+    /* Small screen rules */
+    @media (max-width: 900px) {
+      .charts-grid{ grid-template-columns: 1fr; }
+      .top-section{ flex-direction:column; gap:12px; }
+      table{ min-width:700px; font-size:12px; }
+      header h1{ font-size:14px; }
+    }
+    @media (max-width: 520px) {
+      .search-box{ padding:10px; }
+      .search-box h3{ font-size:13px; }
+      .suggestion-item{ font-size:11px; padding:6px; }
+      .logo{ width:36px;height:36px; font-size:14px; }
+      .container{ padding:12px; }
+      table{ min-width:520px; font-size:12px; }
+    }
+
+    /* Accessibility focus */
+    .suggestion-item:focus{ outline:2px solid rgba(27,102,202,0.18); box-shadow:0 6px 18px rgba(27,102,202,0.06); }
+
+  </style>
+</head>
+<body>
+
+  <header class="app-header" role="banner">
+    <div class="container" style="display:flex;align-items:center;gap:12px;">
+      <div class="brand" style="align-items:center;">
+        <div class="logo">VC</div>
+        <div>
+          <h1>Visor Inteligente de Sedes</h1>
+          <p class="subtitle">Versión 7.0 — Interfaz optimizada</p>
+        </div>
+      </div>
+      <div style="margin-left:auto;font-size:13px;color:var(--muted);">Estado: <strong style="color:var(--primary);margin-left:6px;">Conectado</strong></div>
+    </div>
+  </header>
+
+  <main class="container" role="main">
+    <!-- Top: Searches -->
+    <section class="top-section" aria-label="Buscadores">
+      <div class="search-box" aria-labelledby="loc-title" style="flex:1;">
+        <div class="search-header">
+          <h3 id="loc-title">LOCALIZADOR inteligente de I.E y Sedes</h3>
+          <div class="hint">Busca por SEDE / INSTITUCIÓN / MUNICIPIO / Códigos</div>
+        </div>
+        <div class="search-input">
+          <input id="search1" type="text" aria-label="Buscar localizador" placeholder="Empieza a escribir (min 2 caracteres)..." />
+        </div>
+        <div id="suggestions1" class="suggestions" role="listbox" aria-label="Sugerencias localizador"></div>
+      </div>
+
+      <div class="search-box" aria-labelledby="cat-title" style="width:360px;max-width:40%;">
+        <div class="search-header">
+          <h3 id="cat-title">CATEGORIZACIÓN por Proyectos</h3>
+          <div class="hint">Busca por NIDO, ESC_VIDA, BATUTA, PASC, etc.</div>
+        </div>
+        <div class="search-input">
+          <input id="search2" type="text" aria-label="Buscar categorización" placeholder="Buscar columnas/encabezados (min 2 caracteres)..." />
+        </div>
+        <div id="suggestions2" class="suggestions" role="listbox" aria-label="Sugerencias categorización"></div>
+      </div>
+    </section>
+
+    <!-- Results / summary -->
+    <section class="results-area" aria-live="polite">
+      <div class="results-title">Resultados (0)</div>
+      <div class="results-card">
+        <p class="results-info">La vista inicial mostrará gráficos resumen. Use los buscadores para filtrar y ver la tabla.</p>
+
+        <!-- Summary charts wrapper (usado por scripts) -->
+        <div id="summary-charts">
+          <div class="charts-grid">
+            <div class="chart-card">
+              <h3>Gráfica 1 – Comparativo por Municipio</h3>
+              <canvas id="chart1" aria-label="Gráfica 1" role="img"></canvas>
+            </div>
+            <div class="chart-card">
+              <h3>Gráfica 2 – Top 12 Sedes por Proyectos</h3>
+              <canvas id="chart2" aria-label="Gráfica 2" role="img"></canvas>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Table -->
+    <section id="table-container" class="hidden" aria-label="Tabla de resultados">
+      <div class="results-card" style="padding:8px;">
+        <div style="overflow:auto;">
+          <table id="data-table" role="table" aria-label="Datos de sedes"></table>
+        </div>
+        <!-- 'Mostrar más' será inyectado por script -->
+      </div>
+    </section>
+
+  </main>
+  <!-- INICIA SCRIPT: Parte B (Carga CSV y parseo) -->
+  <script>
+  /***********************************************
+   * FASES 1–6 (Parte B)
+   *  - Carga CSV público (Google Sheets)
+   *  - Parseo simple (preserva encabezados tal como vienen)
+   *  - Construcción de filas (rowsRaw)
+   ***********************************************/
+
+  // URL CSV público (tal como nos diste)
+  const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRe5o92LzVVZNSuqn2eUpGf3t1nr_rf58V37ypPjGldYnxNg1B9XTrtZCvNSU-VTKdszHXD9WeqE8sk/pub?gid=1700850446&single=true&output=csv";
+
+  // Guardaremos los encabezados tal como vienen (sin renombrar)
+  let rawHeaders = [];             // array de strings EXACTOS de la fila de encabezados (fila 3 o primera en este parse)
+  let rowsRaw = [];                // array de objetos usando rawHeaders as keys (exactos)
+  let csvTextGlobal = "";
+
+  // Small CSV parser: preserves original header strings (first non-empty row)
+  function splitCSVLinePreserve(line){
+    const parts = [];
+    let cur = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') { inQuotes = !inQuotes; continue; }
+      if (ch === ',' && !inQuotes) { parts.push(cur); cur = ''; continue; }
+      cur += ch;
+    }
+    parts.push(cur);
+    return parts;
+  }
+
+  async function fetchCSVText(){
+    const resp = await fetch(CSV_URL);
+    if(!resp.ok) throw new Error("Error fetching CSV: " + resp.status);
+    const txt = await resp.text();
+    return txt;
+  }
+
+  function detectHeaderLine(lines){
+    // Heurística simple: choose the first non-empty line that includes "MUNICIPIO" (case-insensitive)
+    for (let i = 0; i < Math.min(6, lines.length); i++){
+      if (!lines[i] || !lines[i].trim()) continue;
+      if (/MUNICIPIO/i.test(lines[i])) return i;
+    }
+    // fallback: first non-empty
+    for (let i = 0; i < lines.length; i++){
+      if (lines[i] && lines[i].trim()) return i;
+    }
+    return 0;
+  }
+
+  function buildRowsFromCSVTextPreserve(csvText){
+    csvTextGlobal = csvText;
+    const lines = csvText.split(/\r?\n/);
+    // detect header line (we expect header row maybe at line index 2 per your file, but preserve)
+    const headerLineIndex = detectHeaderLine(lines);
+    rawHeaders = splitCSVLinePreserve(lines[headerLineIndex]).map(h => h.trim());
+    const dataLines = lines.slice(headerLineIndex + 1);
+    rowsRaw = dataLines.map(line => {
+      if (!line || !line.trim()) return null;
+      const parts = splitCSVLinePreserve(line);
+      const obj = {};
+      for (let i = 0; i < rawHeaders.length; i++){
+        obj[rawHeaders[i]] = (parts[i] === undefined ? "" : parts[i]).trim();
+      }
+      return obj;
+    }).filter(r => r !== null);
+  }
+
+  // Utility: find header key in rawHeaders by case-insensitive match for a canonical name
+  // This does NOT rename headers. It only returns the actual header string found (or null).
+  function findHeaderKey(canonical){
+    if (!canonical) return null;
+    const c = canonical.trim().toLowerCase();
+    for (const h of rawHeaders){
+      if (!h) continue;
+      if (h.trim().toLowerCase() === c) return h;
+    }
+    // try replacing accents or special characters loosely
+    const normalized = s => String(s || "").normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/\s+/g,' ');
+    for (const h of rawHeaders){
+      if (!h) continue;
+      if (normalized(h) === normalized(canonical)) return h;
+    }
+    // no exact match
+    return null;
+  }
+
+  // shorthand canonical names used later (we'll attempt to resolve them to actual headers)
+  const CAN = {
+    MUNICIPIO: "MUNICIPIO",
+    SEDE: "SEDE",
+    INSTITUCION: "INSTITUCION",
+    ZONA: "ZONA",
+    STATUS: "Status",            // common variations exist; findHeaderKey will resolve
+    SECTOR: "SECTOR",
+    COD_SEDE: "COD_SEDE_DANE",
+    COD_IE: "COD_IE_DANE",
+    TOTAL_GENERAL: "TOTAL GENERAL"
+  };
+
+  // parse + init
+  async function initLoad(){
+    try {
+      const csv = await fetchCSVText();
+      buildRowsFromCSVTextPreserve(csv);
+      console.log("CSV parsed. Headers:", rawHeaders.length, "Rows:", rowsRaw.length);
+      // after load, initialize UI bindings and initial summary
+      initAfterLoad();
+    } catch (err) {
+      console.error("Error initLoad:", err);
+      alert("Error cargando CSV: " + err.message);
+    }
+  }
+
+  // start loading immediately
+  initLoad();
+  /***********************************************
+   * FASES 1–6 (Parte C)
+   *  - Cajón 1 (Localizador)
+   *  - Cajón 2 (Categorización)
+   *  - Table render + pagination
+   *  - Summary compute + Chart.js rendering (Gráfica1 & Gráfica2)
+   ***********************************************/
+
+  // UI elements
+  const EL = {
+    search1: () => document.getElementById("search1"),
+    search2: () => document.getElementById("search2"),
+    suggestions1: () => document.getElementById("suggestions1"),
+    suggestions2: () => document.getElementById("suggestions2"),
+    dataTable: () => document.getElementById("data-table"),
+    tableContainer: () => document.getElementById("table-container"),
+    summaryCharts: () => document.getElementById("summary-charts"),
+    resultsTitle: () => document.querySelector(".results-title")
+  };
+
+  // small helpers
+  function normalizeForSearchSimple(s){
+    if (s === undefined || s === null) return "";
+    return String(s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^\w0-9 ]+/g,' ').replace(/\s+/g,' ').trim();
+  }
+
+  function debounce(fn, ms=220){
+    let t;
+    return function(...args){
+      clearTimeout(t);
+      t = setTimeout(()=> fn.apply(this,args), ms);
+    };
+  }
+
+  // get value by canonical header (returns actual stored value or "")
+  function getVal(row, canonical){
+    const key = findHeaderKey(canonical);
+    if (!key) return "";
+    return (row[key] === undefined || row[key] === null) ? "" : String(row[key]);
+  }
+
+  // Determine whether a row is active & official (based on user CSV headers present)
+  function isActiveOfficial(row){
+    const status = getVal(row, CAN.STATUS).toUpperCase();
+    const sector = getVal(row, CAN.SECTOR).toUpperCase();
+    const active = (status.includes("ACTIV") || status.includes("ACTIVE") || status.includes("Activo") || status.includes("ACTIVO") );
+    const oficial = sector.includes("OFICIAL") || sector.includes("Official") || sector.includes("OFICIAL ");
+    return active && oficial;
+  }
+
+  // Determine if row is rural/urbana using ZONA header
+  function zoneIsRural(row){
+    const z = getVal(row, CAN.ZONA).toUpperCase();
+    return z.includes("RURAL") || z.includes("VEREDA") || z.includes("CORREG");
+  }
+  function zoneIsUrbana(row){
+    const z = getVal(row, CAN.ZONA).toUpperCase();
+    return z.includes("URBANA") || z.includes("CABECERA") || z.includes("CABECERA MUNICIPAL") || z.includes("URBANO");
+  }
+
+  // Total General retrieval (attempt several header variants, but prefer exact)
+  function getTotalGeneral(row){
+    // try direct match first
+    let v = getVal(row, CAN.TOTAL_GENERAL);
+    if (v && v.trim() !== "") {
+      const num = Number(String(v).replace(/[^\d\-]/g,''));
+      return isNaN(num) ? 0 : num;
+    }
+    // fallback: search any header with word TOTAL and a digit
+    for (const h of rawHeaders){
+      if (/TOTAL/i.test(h) && /\d/.test(String(row[h] || ""))) {
+        const nv = String(row[h] || "").replace(/[^\d\-]/g,'');
+        const num2 = Number(nv);
+        if (!isNaN(num2)) return num2;
+      }
+    }
+    return 0;
+  }
+
+  /**********************
+   * SEARCH LOCAL (CAJON 1)
+   **********************/
+  const SUG_LIMIT = 3;
+  function searchLocalCandidates(q){
+    if (!q || String(q).trim().length < 2) return [];
+    const qn = normalizeForSearchSimple(q);
+
+    const candidates = [];
+    for (const row of rowsRaw){
+      // fields to search (use canonical list but actual keys remain rawHeaders)
+      const fmun = normalizeForSearchSimple(getVal(row, CAN.MUNICIPIO));
+      const fcodie = normalizeForSearchSimple(getVal(row, CAN.COD_IE));
+      const finst = normalizeForSearchSimple(getVal(row, CAN.INSTITUCION));
+      const fcods = normalizeForSearchSimple(getVal(row, CAN.COD_SEDE));
+      const fsede = normalizeForSearchSimple(getVal(row, CAN.SEDE));
+      const fubic = normalizeForSearchSimple(getVal(row, "UBICACIÓN") || getVal(row, "UBICACION") || getVal(row, "UBICACIÃ“N") || getVal(row, "UBICACIÃN"));
+
+      let matched = false;
+      let score = 999;
+      let matchedField = null;
+
+      const fields = [
+        {k: CAN.MUNICIPIO, v: fmun},
+        {k: CAN.COD_IE, v: fcodie},
+        {k: CAN.INSTITUCION, v: finst},
+        {k: CAN.COD_SEDE, v: fcods},
+        {k: CAN.SEDE, v: fsede},
+        {k: "UBICACIÓN", v: fubic}
+      ];
+
+      // startsWith priority
+      for (let i = 0; i < fields.length; i++){
+        if (fields[i].v.startsWith(qn)){ matched = true; matchedField = fields[i].k; score = i+1; break; }
+      }
+      // contains fallback
+      if (!matched){
+        for (let i = 0; i < fields.length; i++){
+          if (fields[i].v.includes(qn)){ matched = true; matchedField = fields[i].k; score = 20 + i; break; }
+        }
+      }
+      // fulltext fallback
+      if (!matched){
+        const full = normalizeForSearchSimple(Object.values(row).join(" "));
+        if (full.includes(qn)){ matched = true; matchedField = null; score = 200; }
+      }
+      if (matched){
+        candidates.push({row, score, matchedField});
+      }
+    }
+
+    // sort by score asc, then total general desc
+    candidates.sort((a,b)=>{
+      if (a.score !== b.score) return a.score - b.score;
+      const ta = getTotalGeneral(a.row), tb = getTotalGeneral(b.row);
+      if (ta !== tb) return tb - ta;
+      const sa = (getVal(a.row,CAN.SEDE) || getVal(a.row,CAN.INSTITUCION) || "").localeCompare(getVal(b.row,CAN.SEDE) || getVal(b.row,CAN.INSTITUCION) || "");
+      return sa;
+    });
+
+    // dedupe by codes or combination
+    const seen = new Set();
+    const unique = [];
+    for (const c of candidates){
+      const r = c.row;
+      const codS = getVal(r, CAN.COD_SEDE);
+      const codI = getVal(r, CAN.COD_IE);
+      const key = codS ? `S:${codS}` : (codI ? `I:${codI}` : `K:${getVal(r,CAN.SEDE)}|${getVal(r,CAN.INSTITUCION)}|${getVal(r,CAN.MUNICIPIO)}`);
+      if (!seen.has(key)){
+        seen.add(key);
+        unique.push(c);
+      }
+      if (unique.length >= 500) break;
+    }
+
+    return unique;
+  }
+
+  function buildSuggestionElementLocal(candidate, q){
+    const r = candidate.row;
+    const container = document.createElement("div");
+    container.className = "suggestion-item";
+    container.tabIndex = 0;
+    container.style.fontSize = "12px";
+    container.style.lineHeight = "1.1";
+
+    const qn = q;
+    const codS = getVal(r, CAN.COD_SEDE);
+    const codI = getVal(r, CAN.COD_IE);
+    const isCode = (codS && normalizeForSearchSimple(codS).startsWith(normalizeForSearchSimple(qn))) || (codI && normalizeForSearchSimple(codI).startsWith(normalizeForSearchSimple(qn)));
+
+    const lines = [];
+    if (isCode){
+      if (codS && normalizeForSearchSimple(codS).startsWith(normalizeForSearchSimple(qn))) lines.push(["Código Sede", codS]);
+      else if (codI && normalizeForSearchSimple(codI).startsWith(normalizeForSearchSimple(qn))) lines.push(["Código IE", codI]);
+      lines.push(["SEDE", getVal(r,CAN.SEDE) || "—"]);
+      lines.push(["INSTITUCIÓN", getVal(r,CAN.INSTITUCION) || "—"]);
+      lines.push(["UBICACIÓN", getVal(r,"UBICACIÓN") || getVal(r,"UBICACION") || getVal(r,"UBICACIÃ“N") || "—"]);
+      lines.push(["MUNICIPIO", getVal(r,CAN.MUNICIPIO) || "—"]);
+    } else {
+      lines.push(["SEDE", getVal(r,CAN.SEDE) || "—"]);
+      lines.push(["INSTITUCIÓN", getVal(r,CAN.INSTITUCION) || "—"]);
+      lines.push(["UBICACIÓN", getVal(r,"UBICACIÓN") || getVal(r,"UBICACION") || getVal(r,"UBICACIÃN") || "—"]);
+      const statusVal = getVal(r, CAN.STATUS) || "";
+      if (/cier/i.test(statusVal)) lines.push(["Estado", statusVal]); else lines.push(["MUNICIPIO", getVal(r,CAN.MUNICIPIO) || "—"]);
+    }
+
+    lines.forEach((ln, idx) => {
+      const d = document.createElement("div");
+      const text = ln[1] || "";
+      // create a simple highlight by splitting occurrences (safe)
+      const frag = document.createDocumentFragment();
+      if (normalizeForSearchSimple(qn) && normalizeForSearchSimple(text).includes(normalizeForSearchSimple(qn))){
+        // naive highlight: find first occurrence (case-insensitive)
+        const lower = text.toLowerCase();
+        const ql = qn.toLowerCase();
+        const pos = lower.indexOf(ql);
+        if (pos === -1) frag.appendChild(document.createTextNode(text));
+        else {
+          frag.appendChild(document.createTextNode(text.slice(0,pos)));
+          const strong = document.createElement("strong"); strong.textContent = text.slice(pos,pos+ql.length);
+          frag.appendChild(strong);
+          frag.appendChild(document.createTextNode(text.slice(pos+ql.length)));
+        }
+      } else {
+        frag.appendChild(document.createTextNode(text));
+      }
+      if (idx === 0){ d.style.fontWeight = "700"; d.appendChild(frag); } else { d.style.color = "#444"; d.appendChild(frag); }
+      container.appendChild(d);
+    });
+
+    container.addEventListener("click", ()=>{
+      // show this single row in table
+      filteredRows = [r];
+      activeCategoryHeaders = [];
+      showTableView();
+      renderTableWithPagination(true);
+      updateResultsCount(filteredRows.length);
+      clearCategoryInputAndSuggestions();
+      clearLocalInputAndSuggestions();
+      // scroll to table
+      const tcont = EL.tableContainer(); if (tcont) tcont.classList.remove("hidden"), tcont.scrollIntoView({behavior:"smooth"});
+    });
+
+    return container;
+  }
+
+  function renderLocalSuggestions(q){
+    const cont = EL.suggestions1();
+    if (!cont) return;
+    cont.innerHTML = "";
+    if (!q || q.trim().length < 2){ cont.style.display = "none"; return; }
+    const cands = searchLocalCandidates(q).slice(0,SUG_LIMIT);
+    if (!cands || cands.length === 0){
+      const none = document.createElement("div"); none.className = "suggestion-item"; none.textContent = "No se encontraron sugerencias"; cont.appendChild(none); cont.style.display = ""; return;
+    }
+    cands.forEach(c => cont.appendChild(buildSuggestionElementLocal(c,q)));
+    cont.style.display = "";
+  }
+
+  function clearLocalInputAndSuggestions(){
+    const i = EL.search1(); if (i) i.value = "";
+    const s = EL.suggestions1(); if (s) { s.innerHTML=""; s.style.display='none'; }
+  }
+
+  /**********************
+   * SEARCH CATEGORIAS (CAJON 2)
+   **********************/
+  function buildHeaderGroups(){
+    const map = {};
+    for (const h of rawHeaders){
+      if (!h) continue;
+      // base: remove years (simple)
+      let base = h.replace(/\b(19|20)\d{2}\b/g,'').trim();
+      base = base.replace(/[_\-\(\)]/g,' ').replace(/\s+/g,' ').trim();
+      if (!map[base]) map[base] = [];
+      map[base].push(h);
+    }
+    return map;
+  }
+
+  function searchCategoryGroups(q){
+    if (!q || q.trim().length < 2) return [];
+    const qn = normalizeForSearchSimple(q);
+    const groups = buildHeaderGroups();
+    const out = [];
+    for (const base in groups){
+      const baseNorm = normalizeForSearchSimple(base);
+      let matched = false;
+      if (baseNorm.includes(qn)) matched = true;
+      for (const h of groups[base]){
+        if (normalizeForSearchSimple(h).includes(qn)) matched = true;
+      }
+      if (!matched) continue;
+      // count rows with any value in this group's headers
+      let countAny = 0;
+      const topMun = {};
+      for (const r of rowsRaw){
+        let any = false;
+        for (const h of groups[base]){
+          if (String(r[h] || "").trim() !== "") { any = true; break; }
+        }
+        if (any){
+          countAny++;
+          const m = r[findHeaderKey(CAN.MUNICIPIO)] || "SIN MUNICIPIO";
+          topMun[m] = (topMun[m] || 0) + 1;
+        }
+      }
+      out.push({ base, headers: groups[base], countAny, topMun });
+    }
+    out.sort((a,b)=> b.countAny - a.countAny);
+    return out;
+  }
+
+  function buildCategorySuggestionDOM(result,q){
+    const div = document.createElement("div");
+    div.className = "suggestion-item";
+    div.tabIndex = 0;
+    div.style.fontSize="12px";
+    div.style.lineHeight="1.12";
+    const main = document.createElement("div"); main.style.fontWeight="700";
+    main.textContent = result.base;
+    const sub = document.createElement("div"); sub.style.color="#555";
+    const top = Object.entries(result.topMun || {}).sort((a,b)=>b[1]-a[1]).slice(0,3).map(x=>`${x[0]}(${x[1]})`).join(", ");
+    sub.textContent = `Sedes con dato: ${result.countAny} · Top municipios: ${top}`;
+    div.appendChild(main); div.appendChild(sub);
+
+    div.addEventListener("click", ()=>{
+      // set active headers and filter rows
+      activeCategoryHeaders = result.headers.slice();
+      filteredRows = rowsRaw.filter(r=>{
+        for (const h of activeCategoryHeaders) if (String(r[h] || "").trim() !== "") return true;
+        return false;
+      });
+      showTableView();
+      renderTableWithPagination(true);
+      updateResultsCount(filteredRows.length);
+      clearLocalInputAndSuggestions();
+      clearCategoryInputAndSuggestions();
+      const tcont = EL.tableContainer(); if (tcont) tcont.classList.remove("hidden"), tcont.scrollIntoView({behavior:"smooth"});
+    });
+
+    return div;
+  }
+
+  function renderCategorySuggestions(q){
+    const cont = EL.suggestions2();
+    if (!cont) return;
+    cont.innerHTML = "";
+    if (!q || q.trim().length < 2){ cont.style.display='none'; return; }
+    const results = searchCategoryGroups(q).slice(0,SUG_LIMIT);
+    if (!results || results.length === 0){ const none = document.createElement("div"); none.className="suggestion-item"; none.textContent="No se encontraron encabezados"; cont.appendChild(none); cont.style.display=''; return; }
+    results.forEach(r => cont.appendChild(buildCategorySuggestionDOM(r,q)));
+    cont.style.display = "";
+  }
+
+  function clearCategoryInputAndSuggestions(){
+    const i = EL.search2(); if (i) i.value = "";
+    const s = EL.suggestions2(); if (s) { s.innerHTML=""; s.style.display='none'; }
+  }
+
+  /**********************
+   * TABLE RENDER + PAGINATION
+   **********************/
+  let TABLE_PAGE_SIZE = 10;
+  let TABLE_OFFSET = 0;
+  let filteredRows = [];        // current rows to show in table
+  let activeCategoryHeaders = []; // from category selection
+
+  function renderTableWithPagination(reset=false){
+    if (reset) TABLE_OFFSET = 0;
+    const table = EL.dataTable();
+    if (!table) return;
+    table.innerHTML = "";
+    // header
+    const thead = document.createElement("thead");
+    const trh = document.createElement("tr");
+    const baseCols = [CAN.MUNICIPIO, CAN.INSTITUCION, CAN.SEDE, CAN.TOTAL_GENERAL, CAN.STATUS];
+    baseCols.forEach(c => {
+      const th = document.createElement("th"); th.textContent = c; trh.appendChild(th);
+    });
+    // extra activeCategoryHeaders (actual raw names)
+    if (Array.isArray(activeCategoryHeaders) && activeCategoryHeaders.length){
+      activeCategoryHeaders.forEach(h => { const th = document.createElement("th"); th.textContent = h; trh.appendChild(th); });
+    }
+    thead.appendChild(trh); table.appendChild(thead);
+
+    // body
+    const tbody = document.createElement("tbody");
+    const sliceRows = filteredRows.slice(TABLE_OFFSET, TABLE_OFFSET + TABLE_PAGE_SIZE);
+    sliceRows.forEach(r =>{
+      const tr = document.createElement("tr");
+      const tdMun = document.createElement("td"); tdMun.textContent = getVal(r,CAN.MUNICIPIO) || ""; tr.appendChild(tdMun);
+      const tdInst = document.createElement("td"); tdInst.textContent = getVal(r,CAN.INSTITUCION) || ""; tr.appendChild(tdInst);
+      const tdSede = document.createElement("td"); tdSede.textContent = getVal(r,CAN.SEDE) || ""; tr.appendChild(tdSede);
+      const tdTG = document.createElement("td"); tdTG.textContent = getTotalGeneral(r) || ""; tr.appendChild(tdTG);
+      const tdStatus = document.createElement("td"); tdStatus.textContent = getVal(r,CAN.STATUS) || ""; tr.appendChild(tdStatus);
+      if (Array.isArray(activeCategoryHeaders) && activeCategoryHeaders.length){
+        activeCategoryHeaders.forEach(h => { const td = document.createElement("td"); td.textContent = r[h] || ""; tr.appendChild(td); });
+      }
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+
+    // show/hide more button (placed after table)
+    let more = document.getElementById("table-more-btn");
+    if (!more){
+      more = document.createElement("button"); more.id = "table-more-btn"; more.textContent = "Mostrar más"; more.style.margin="10px 0";
+      more.addEventListener("click", ()=> { TABLE_OFFSET += TABLE_PAGE_SIZE; renderTableWithPagination(false); });
+      EL.tableContainer().appendChild(more);
+    }
+    if (TABLE_OFFSET + TABLE_PAGE_SIZE >= filteredRows.length) more.style.display = "none"; else more.style.display = "";
+  }
+
+  function updateResultsCount(n){
+    const el = EL.resultsTitle();
+    if (el) el.textContent = `Resultados (${n})`;
+  }
+
+  /**********************
+   * SUMMARY COMPUTE & CHARTS (FASE 5)
+   **********************/
+  let SUMMARY = null;
+  let CH1 = null, CH2 = null;
+
+  function computeSummary(){
+    const summary = { municipios: {}, proyectosPorSede: {} };
+    const colMunKey = findHeaderKey(CAN.MUNICIPIO);
+    const colZonaKey = findHeaderKey(CAN.ZONA);
+    const colSectorKey = findHeaderKey(CAN.SECTOR);
+    const colStatusKey = findHeaderKey(CAN.STATUS);
+
+    // project columns detection: any header that matches typical hints
+    const hints = ["NIDO","ESC_VIDA","BATUTA","PASC","ATAL","FCC","BECA","PC","ESC_VIDA","BIBLIOGRAFICA","DEPORTIVA","INFRAEST","LEGALIZACION","BIENESTAR","SENA","COMFAMA","AGUA","CONECTIVIDAD","EMBELLECIMIENTO"];
+    const projectCols = rawHeaders.filter(h => {
+      const hh = normalizeForSearchSimple(h);
+      return hints.some(hi => hh.includes(hi.toLowerCase())) ;
+    });
+
+    for (const row of rowsRaw){
+      const municipio = (row[colMunKey] || "SIN MUNICIPIO");
+      if (!summary.municipios[municipio]) summary.municipios[municipio] = { sedesActivas:0, sedesRural:0, sedesUrbano:0, totalEst:0, ruralEst:0, urbanoEst:0 };
+
+      const sector = (colSectorKey ? (row[colSectorKey]||"") : "");
+      const status = (colStatusKey ? (row[colStatusKey]||"") : "");
+      const isActive = (status && /ACTIV/i.test(status));
+      const isOfficial = (sector && /OFICIAL/i.test(sector));
+
+      if (isActive && isOfficial){
+        summary.municipios[municipio].sedesActivas++;
+        const zg = (colZonaKey ? (row[colZonaKey]||"") : "");
+        if (/RURAL/i.test(zg)) summary.municipios[municipio].sedesRural++;
+        else summary.municipios[municipio].sedesUrbano++;
+
+        const tg = getTotalGeneral(row) || 0;
+        summary.municipios[municipio].totalEst += tg;
+        if (/RURAL/i.test(zg)) summary.municipios[municipio].ruralEst += tg; else summary.municipios[municipio].urbanoEst += tg;
+      }
+
+      // proyectos por sede
+      const codSKey = findHeaderKey(CAN.COD_SEDE);
+      const key = codSKey ? (row[codSKey] || `${municipio}|${row[findHeaderKey(CAN.INSTITUCION)]||""}|${row[findHeaderKey(CAN.SEDE)]||""}`) : `${municipio}|${row[findHeaderKey(CAN.INSTITUCION)]||""}|${row[findHeaderKey(CAN.SEDE)]||""}`;
+      if (!summary.proyectosPorSede[key]) summary.proyectosPorSede[key] = { sede: row[ findHeaderKey(CAN.SEDE) ] || "", institucion: row[ findHeaderKey(CAN.INSTITUCION) ] || "", municipio, totalProyectos:0 };
+      // count projects by heuristics over projectCols
+      let projCount = 0;
+      for (const pc of projectCols) if (String(row[pc]||"").trim() !== "") projCount++;
+      summary.proyectosPorSede[key].totalProyectos += projCount;
+    }
+
+    SUMMARY = summary;
+    return { summary, projectCols };
+  }
+
+  function renderCharts(){
+    const { summary } = computeSummary();
+    // Chart 1: top 7 municipios by sedesActivas
+    const munList = Object.entries(summary.municipios).map(([m,obj]) => ({ municipio:m, ...obj })).sort((a,b)=>b.sedesActivas - a.sedesActivas).slice(0,7);
+    const labels = munList.map(x=>x.municipio);
+    const sedR = munList.map(x=>x.sedesRural);
+    const sedU = munList.map(x=>x.sedesUrbano);
+    const estR = munList.map(x=>x.ruralEst);
+    const estU = munList.map(x=>x.urbanoEst);
+
+    // destroy old
+    if (CH1) CH1.destroy();
+    if (CH2) CH2.destroy();
+
+    const ctx1 = document.getElementById("chart1").getContext("2d");
+    CH1 = new Chart(ctx1, {
+      type: "bar",
+      data: {
+        labels,
+        datasets: [
+          { label: "Sedes Rurales", data: sedR, stack: "sedes", backgroundColor: "#4C8BF5" },
+          { label: "Sedes Urbanas", data: sedU, stack: "sedes", backgroundColor: "#1B66CA" },
+          { label: "Estudiantes Rurales", data: estR, stack: "est", backgroundColor: "#A6C8FF" },
+          { label: "Estudiantes Urbanos", data: estU, stack: "est", backgroundColor: "#7FB2FF" }
+        ]
+      },
+      options: {
+        responsive:true,
+        plugins:{ legend:{ position:"bottom" } },
+        scales:{ x:{ stacked:true }, y:{ stacked:true, beginAtZero:true } }
+      }
+    });
+
+    // Chart 2: top 12 sedes by projects
+    const sList = Object.values(summary.proyectosPorSede).sort((a,b)=>b.totalProyectos - a.totalProyectos).slice(0,12);
+    const labels2 = sList.map(s => s.sede ? `${s.sede} (${s.municipio})` : `${s.institucion} (${s.municipio})`);
+    const data2 = sList.map(s => s.totalProyectos);
+    const ctx2 = document.getElementById("chart2").getContext("2d");
+    CH2 = new Chart(ctx2, {
+      type: "bar",
+      data: { labels: labels2, datasets: [{ label: "Proyectos", data: data2, backgroundColor: "#1B66CA" }] },
+      options: { indexAxis:"y", responsive:true, plugins:{ legend:{ display:false } }, scales:{ x:{ beginAtZero:true } } }
+    });
+  }
+
+  // View toggles: initial summary vs table
+  function showTableView(){
+    const sc = EL.summaryCharts(); if (sc) sc.style.display = "none";
+    const t = EL.tableContainer(); if (t) t.classList.remove("hidden");
+  }
+  function showSummaryView(){
+    const sc = EL.summaryCharts(); if (sc) sc.style.display = "block";
+    const t = EL.tableContainer(); if (t) t.classList.add("hidden");
+  }
+  function hideSummaryCharts(){
+    const sc = EL.summaryCharts(); if (sc) sc.style.display = "none";
+  }
+
+  // Wire UI after load
+  function initAfterLoad(){
+    // render initial summary charts
+    try { renderCharts(); showSummaryView(); }
+    catch(e){ console.warn("charts error", e); }
+
+    // attach handlers
+    const in1 = EL.search1(), in2 = EL.search2();
+    if (in1){
+      in1.addEventListener("input", debounce((e)=>{
+        const val = e.target.value;
+        if (!val || val.trim()===""){ // restore summary if empty and no cat input
+          if (!in2 || !in2.value) { showSummaryView(); }
+          clearLocalInputAndSuggestions();
+          return;
+        }
+        hideSummaryCharts();
+        renderLocalSuggestions(val);
+      },220));
+      in1.addEventListener("keydown", (e)=> {
+        if (e.key === "Escape") clearLocalInputAndSuggestions();
+      });
+    }
+    if (in2){
+      in2.addEventListener("input", debounce((e)=>{
+        const val = e.target.value;
+        if (!val || val.trim()===""){ if (!in1 || !in1.value) { showSummaryView(); } clearCategoryInputAndSuggestions(); return; }
+        hideSummaryCharts();
+        renderCategorySuggestions(val);
+      },220));
+      in2.addEventListener("keydown", (e) => { if (e.key === "Escape") clearCategoryInputAndSuggestions(); });
+    }
+
+    // clicking outside suggestions closes them
+    document.addEventListener("click", (ev)=>{
+      const s1 = EL.suggestions1(), s2 = EL.suggestions2();
+      if (s1 && !s1.contains(ev.target) && in1 && ev.target !== in1) s1.style.display='none';
+      if (s2 && !s2.contains(ev.target) && in2 && ev.target !== in2) s2.style.display='none';
+    });
+  }
+
+  // expose some globals for debugging
+  window._viewer = {
+    rawHeaders, rowsRaw, renderCharts, renderTableWithPagination
+  };
+
+  // when CSV initially loaded we set filteredRows empty and show summary
+  filteredRows = [];
+  activeCategoryHeaders = [];
+
+  </script>
+</body>
+</html>
