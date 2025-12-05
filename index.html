@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Visor Inteligente de Sedes – Versión Consolidada</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <style>
+    /* ================= DISEÑO VISUAL (Del archivo Nuevo) ================= */
+    :root{
+      --bg:#f5f7fb; --card:#ffffff; --muted:#6b7280; --primary:#1B66CA; --accent:#FFF59D;
+      --radius:10px; --shadow: 0 6px 18px rgba(17,24,39,0.06); --glass: rgba(255,255,255,0.6);
+      --max-width:1280px;
+    }
+    html,body{ height:100%; margin:0; font-family: "Inter", system-ui, sans-serif; background:var(--bg); color:#0f172a; }
+
+    /* Header */
+    header.app-header{ position:sticky; top:0; z-index:1200; backdrop-filter: blur(6px); background: rgba(255,255,255,0.9); border-bottom: 1px solid rgba(15,23,42,0.04); display:flex; align-items:center; gap:12px; padding:10px 18px; }
+    .logo{ width:40px;height:40px;border-radius:8px;background:var(--primary);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;box-shadow:0 6px 18px rgba(27,102,202,0.15); }
+    header h1{ margin:0;font-size:16px;font-weight:700;color:var(--primary); }
+    header p.subtitle{ margin:0;font-size:12px;color:var(--muted); }
+
+    .container{ max-width:var(--max-width); margin:18px auto; padding:18px; }
+
+    /* Buscadores */
+    .top-section{ display:flex; gap:16px; align-items:flex-start; margin-bottom:18px; }
+    .search-box{ background:var(--card); border-radius:var(--radius); padding:12px; box-shadow:var(--shadow); width:100%; border:1px solid rgba(15,23,42,0.04); position: relative; }
+    .search-header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+    .search-box h3{ margin:0; font-size:13px; color:#0f172a; font-weight:600; }
+    .search-box .hint{ font-size:12px; color:var(--muted); }
+    .search-input input{ width:100%; padding:10px 12px; border-radius:8px; border:1px solid rgba(15,23,42,0.1); font-size:14px; outline:none; box-sizing: border-box; }
+    .search-input input:focus{ box-shadow: 0 0 0 3px rgba(27,102,202,0.1); border-color: var(--primary); }
+
+    /* Sugerencias (Adaptado para usar lógica vieja con estilo nuevo) */
+    .suggestions{ display:none; position:absolute; top:100%; left:0; right:0; z-index:100; background:#fff; border:1px solid rgba(15,23,42,0.05); border-radius:8px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); max-height:300px; overflow:auto; margin-top:4px; }
+    .suggest-item{ padding:10px; border-bottom:1px solid #f4f6fa; cursor:pointer; transition:background .1s; }
+    .suggest-item:last-child{ border-bottom:none; }
+    .suggest-item:hover{ background: #f8fafc; }
+    .suggest-line-main{ font-weight:600; font-size:13px; color:#1e293b; display:block; margin-bottom:2px; }
+    .suggest-line-sub{ font-size:12px; color:var(--muted); display:block; }
+    strong { background: var(--accent); color:#444; padding:0 2px; border-radius:2px; font-weight:700; }
+
+    /* Resultados y Charts */
+    .results-area{ margin-bottom:14px; }
+    .results-card{ background:var(--card); border-radius:var(--radius); padding:14px; box-shadow:var(--shadow); border:1px solid rgba(15,23,42,0.04); min-height: 100px; }
+    .charts-grid{ display:grid; grid-template-columns: 2fr 1fr; gap:18px; margin-top:12px; }
+    .chart-card{ background:var(--card); border-radius:10px; padding:12px; box-shadow: 0 6px 18px rgba(13,24,46,0.04); border:1px solid rgba(15,23,42,0.03); height:260px; display:flex; flex-direction:column; }
+    .chart-canvas-container{ flex:1; position:relative; width:100%; }
+
+    /* Tabla */
+    #table-container{ margin-top:14px; overflow:auto; border-radius:10px; display:none; } /* Oculto por defecto */
+    table{ width:100%; border-collapse:collapse; font-size:13px; min-width:900px; background: #fff; }
+    th, td{ padding:10px; text-align:left; border-bottom:1px solid #e2e8f0; }
+    th{ background:#f8fafc; position:sticky; top:0; font-weight:600; color:#334155; }
+    tbody tr:hover{ background:#f1f5f9; }
+
+    /* Utilidades */
+    .hidden { display:none !important; }
+    .meta-tag { display:inline-block; background:#eff6ff; color:var(--primary); padding:2px 6px; border-radius:4px; font-size:11px; margin-left:6px; font-weight:600; }
+
+    @media (max-width: 900px) { .charts-grid{ grid-template-columns: 1fr; } .top-section{ flex-direction:column; } }
+  </style>
+</head>
+<body>
+
+  <header class="app-header">
+    <div class="container" style="display:flex;align-items:center;gap:12px;margin:0;padding:0;width:100%">
+      <div class="logo">BD</div>
+      <div>
+        <h1>Visor Inteligente de Sedes</h1>
+        <p class="subtitle">Consolidado: Diseño Nuevo + Lógica Previa</p>
+      </div>
+      <div style="margin-left:auto;font-size:12px;text-align:right;">
+        <span id="loading-badge" style="background:#fff3cd;color:#856404;padding:4px 8px;border-radius:4px;">Cargando datos...</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="top-section">
+      <div class="search-box">
+        <div class="search-header">
+          <h3 id="loc-title">LOCALIZADOR inteligente de I.E y Sedes</h3>
+          <div class="hint">Busca por Municipio, Código DANE, Institución o Sede</div>
+        </div>
+        <div class="search-input">
+          <input id="search1" type="text" placeholder="Escribe para buscar (ej. Tarazá, 105...)" autocomplete="off" />
+        </div>
+        <div id="suggestions1" class="suggestions"></div>
+      </div>
+
+      <div class="search-box" style="flex-basis: 40%;">
+        <div class="search-header">
+          <h3 id="cat-title">CATEGORIZACIÓN por Proyectos</h3>
+          <div class="hint">Filtra columnas (ej. NIDO, Conectividad, Agua)</div>
+        </div>
+        <div class="search-input">
+          <input id="search2" type="text" placeholder="Buscar encabezado..." autocomplete="off" />
+        </div>
+        <div id="suggestions2" class="suggestions"></div>
+      </div>
+    </section>
+
+    <section class="results-area">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div class="results-title" style="font-weight:700;font-size:15px;">
+          Resultados: <span id="resultsCount">Cargando...</span>
+          <span id="activeFilters"></span>
+        </div>
+        <button id="btn-reset" onclick="resetView()" style="background:none;border:1px solid #ccc;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:12px;display:none;">Volver al Inicio</button>
+      </div>
+
+      <div id="summary-view">
+        <div class="charts-grid">
+          <div class="chart-card">
+            <h3>Sedes por Municipio</h3>
+            <div class="chart-canvas-container">
+              <canvas id="chart1"></canvas>
+            </div>
+          </div>
+          <div class="chart-card">
+            <h3>Top Proyectos (Conteo)</h3>
+            <div class="chart-canvas-container">
+              <canvas id="chart2"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="table-container">
+        <table id="data-table">
+          <thead></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+<script>
+/* ==========================================================================
+   CEREBRO (LÓGICA DEL ARCHIVO PREVIO)
+   ========================================================================== */
+const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRe5o92LzVVZNSuqn2eUpGf3t1nr_rf58V37ypPjGldYnxNg1B9XTrtZCvNSU-VTKdszHXD9WeqE8sk/pub?gid=1700850446&single=true&output=csv";
+
+// Configuración de campos de búsqueda (Igual que en el Previo)
+const CAJON1_FIELDS = ["MUNICIPIO","COD_IE_DANE","INSTITUCION","COD_SEDE_DANE","SEDE","UBICACION"];
+const CAJON2_INDEXABLE_HEADERS = [
+  "2022 ERA","2023 Docentes","2023 Estudiantes","2024 Docentes","2024 Estudiantes","2025 Docentes","2025 Estudiantes",
+  "2022 ESC_VIDA","2023 ESC_VIDA","2024 ESC_VIDA","2025 ESC_VIDA","2024 NIDO","2025 NIDO","BATUTA 2025","ATAL 2025","FCC 2025","PASC 2025",
+  "MAMM 2025","BECA UDEA 2025","PC 2023","PC 2024","Bibliográfica (Dotación)","Deportiva (Dotación)","INFRAEST. Gob",
+  "Legalización Predio Resolución de sana posesión","Bienestar Maestro","SENA (Oferta)","COMFAMA inspiración","AGUA (Alianza por el Agua)",
+  "Agua Fund.EPM","Agua potable","Conectividad","Embellecimiento Escuelas"
+];
+
+/* Variables de Estado */
+let rawRows = [];
+let headerRow = []; // array of {visible, key}
+let rows = []; // array procesado con metadata
+let filtered = []; // resultados actuales para la tabla
+let chartInstance1 = null;
+let chartInstance2 = null;
+let activeCategoryHeaders = []; // Columnas extra seleccionadas por Caja 2
+
+/* ================= UTILS DE NORMALIZACIÓN (Del Previo) ================= */
+function safeText(x){ return x===undefined||x===null ? '' : String(x); }
+function fixEncoding(s){ try { return decodeURIComponent(escape(s)); } catch(e){ return s; } }
+
+function normalizeCell(raw){
+  const fixed = fixEncoding(safeText(raw)).replace(/[\u0000-\u001F]/g,'').trim();
+  const noAccents = fixed.normalize('NFD').replace(/\p{Diacritic}/gu,'');
+  const visible = noAccents.replace(/\s+/g,' ').replace(/\u00A0/g,' ').trim();
+  const key = visible.toUpperCase().replace(/[^A-Z0-9]+/g,'_').replace(/^_|_$/g,'');
+  return {visible, key};
+}
+
+function normalizeForSearch(s){
+  if(s===undefined||s===null) return '';
+  return fixEncoding(String(s)).normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase();
+}
+
+/* Helpers de Resaltado (Highlighting) */
+function mapNormToOriginalIndices(original){
+  const orig = safeText(original);
+  const norm = orig.normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase();
+  const mapping = [];
+  for(let i=0;i<orig.length;i++){ mapping.push(i); }
+  return {orig, norm, mapping};
+}
+
+function findNormalizedMatches(original, query){
+  const q = query.normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase();
+  if(!q) return [];
+  const {orig, norm, mapping} = mapNormToOriginalIndices(original);
+  const positions = [];
+  let startIndex = 0;
+  while(true){
+    const idx = norm.indexOf(q, startIndex);
+    if(idx === -1) break;
+    const origStart = mapping[idx] !== undefined ? mapping[idx] : idx;
+    const positionsEnd = mapping[idx + q.length - 1] !== undefined ? mapping[idx + q.length - 1] + 1 : origStart + q.length;
+    positions.push([origStart, positionsEnd]);
+    startIndex = idx + q.length;
+  }
+  return positions;
+}
+
+function buildHighlightedFragment(text, query){
+  const frag = document.createDocumentFragment();
+  if(!text) { frag.appendChild(document.createTextNode('')); return frag; }
+  const matches = findNormalizedMatches(text, query);
+  if(matches.length === 0){ frag.appendChild(document.createTextNode(text)); return frag; }
+  let cursor = 0;
+  for(const [s,e] of matches){
+    if(s > cursor) frag.appendChild(document.createTextNode(text.slice(cursor, s)));
+    const strong = document.createElement('strong');
+    strong.textContent = text.slice(s,e);
+    frag.appendChild(strong);
+    cursor = e;
+  }
+  if(cursor < text.length) frag.appendChild(document.createTextNode(text.slice(cursor)));
+  return frag;
+}
+
+/* ================= CARGA DE DATOS (PapaParse) ================= */
+function initApp(){
+  Papa.parse(CSV_URL, {
+    download: true,
+    skipEmptyLines: false,
+    complete: function(res){
+      processData(res.data);
+    },
+    error: function(err){
+      document.getElementById('loading-badge').textContent = "Error al cargar";
+      document.getElementById('loading-badge').style.background = "#ffcccc";
+    }
+  });
+}
+
+function processData(dataRaw){
+  // Limpieza básica de filas vacías
+  rawRows = dataRaw.map(r => r.map(c => c === undefined ? '' : String(c)));
+  while(rawRows.length && rawRows[rawRows.length - 1].every(x=>x.trim()==='')) rawRows.pop();
+
+  if(rawRows.length < 3){ alert("CSV Inválido"); return; }
+
+  // Fila 3 suele ser el encabezado (índice 2) según tu archivo previo
+  headerRow = rawRows[2].map(cell => normalizeCell(cell));
+
+  // Procesar filas de datos (desde index 3)
+  rows = rawRows.slice(3).map(r => {
+    const obj = {};
+    for(let i=0;i<headerRow.length;i++){
+      const key = headerRow[i].key; // Clave normalizada (ej. MUNICIPIO)
+      const val = r[i];
+      if(key) obj[key] = safeText(val);
+      // Guardar nombre original de columna también para visualización
+      obj[headerRow[i].visible] = safeText(val);
+    }
+    // Meta data pre-calculada para búsquedas rápidas
+    obj.__meta = {
+      norm: {
+        mun: normalizeForSearch(obj["MUNICIPIO"]),
+        inst: normalizeForSearch(obj["INSTITUCION"]),
+        sede: normalizeForSearch(obj["SEDE"]),
+        ubic: normalizeForSearch(obj["UBICACION"])
+      },
+      cod_ie: normalizeForSearch(obj["COD_IE_DANE"]),
+      cod_sede: normalizeForSearch(obj["COD_SEDE_DANE"])
+    };
+    return obj;
+  });
+
+  // Finalizar carga
+  document.getElementById('loading-badge').textContent = "Datos listos";
+  document.getElementById('loading-badge').style.background = "#d4edda";
+  document.getElementById('loading-badge').style.color = "#155724";
+  document.getElementById('resultsCount').textContent = rows.length + " sedes total";
+
+  // Iniciar Vista
+  resetView();
+}
+
+/* ================= LÓGICA DE BÚSQUEDA (El Corazón del Previo) ================= */
+
+// Lógica Caja 1: Localizador
+function searchCandidatesLocal(q){
+  if(!q || q.trim().length < 2) return [];
+  const qn = normalizeForSearch(q);
+  const cand = [];
+
+  for(let i=0;i<rows.length;i++){
+    const r = rows[i];
+    const valMap = {
+      "MUNICIPIO": r.__meta.norm.mun,
+      "COD_IE_DANE": r.__meta.cod_ie,
+      "INSTITUCION": r.__meta.norm.inst,
+      "COD_SEDE_DANE": r.__meta.cod_sede,
+      "SEDE": r.__meta.norm.sede,
+      "UBICACION": r.__meta.norm.ubic
+    };
+
+    let matched = false;
+    let score = 999;
+    let matchedField = null;
+
+    // Prioridad 1: StartsWith
+    for(let p=0;p<CAJON1_FIELDS.length;p++){
+      const field = CAJON1_FIELDS[p];
+      const fv = (valMap[field] || '');
+      if(fv.startsWith(qn)){
+        matched = true; score = p+1; matchedField = field; break;
+      }
+    }
+    // Prioridad 2: Contains (si no hubo match exacto al inicio)
+    if(!matched){
+      for(let p=0;p<CAJON1_FIELDS.length;p++){
+        const field = CAJON1_FIELDS[p];
+        const fv = (valMap[field] || '');
+        if(fv.includes(qn)){
+          matched = true; score = (p+1)*10 + 50; matchedField = field; break;
+        }
+      }
+    }
+
+    if(matched){
+      cand.push({row:r, score, matchedField});
+    }
+  }
+  // Ordenar por relevancia (score menor es mejor)
+  cand.sort((a,b) => a.score - b.score);
+  return cand.slice(0, 50); // Limite de sugerencias
+}
+
+// Lógica Caja 2: Categorización
+function searchCategoryCandidates(q){
+  if(!q || q.trim().length < 2) return [];
+  const qn = normalizeForSearch(q);
+  const results = [];
+
+  // Buscar solo en encabezados permitidos
+  const matches = CAJON2_INDEXABLE_HEADERS.filter(h => normalizeForSearch(h).includes(qn));
+
+  matches.forEach(headerName => {
+    // Contar cuántas filas tienen datos en esta columna
+    let count = 0;
+    rows.forEach(r => {
+      // Intentamos encontrar la propiedad en el objeto (normalizando la key por si acaso)
+      // Como guardamos headerRow[i].visible en el objeto, usamos eso
+      if(r[headerName] && r[headerName].trim() !== '') count++;
+    });
+
+    if(count > 0){
+      results.push({ header: headerName, count: count });
+    }
+  });
+
+  results.sort((a,b) => b.count - a.count);
+  return results;
+}
+
+/* ================= INTERFAZ Y EVENTOS ================= */
+const inp1 = document.getElementById('search1');
+const sug1 = document.getElementById('suggestions1');
+const inp2 = document.getElementById('search2');
+const sug2 = document.getElementById('suggestions2');
+
+// Debounce para no saturar al escribir
+let debounceTimer;
+inp1.addEventListener('input', (e) => {
+  clearTimeout(debounceTimer);
+  const val = e.target.value;
+  if(!val){ sug1.style.display='none'; return; }
+  debounceTimer = setTimeout(() => {
+    const res = searchCandidatesLocal(val);
+    renderSuggestions1(res, val);
+  }, 250);
+});
+
+inp2.addEventListener('input', (e) => {
+  clearTimeout(debounceTimer);
+  const val = e.target.value;
+  if(!val){ sug2.style.display='none'; return; }
+  debounceTimer = setTimeout(() => {
+    const res = searchCategoryCandidates(val);
+    renderSuggestions2(res, val);
+  }, 250);
+});
+
+// Render Suggestion 1 (Localizador)
+function renderSuggestions1(candidates, query){
+  sug1.innerHTML = '';
+  if(candidates.length === 0){ sug1.style.display='none'; return; }
+  sug1.style.display = 'block';
+
+  candidates.forEach(c => {
+    const r = c.row;
+    const div = document.createElement('div');
+    div.className = 'suggest-item';
+
+    // Línea Principal: Sede o Institución
+    const mainLine = document.createElement('span');
+    mainLine.className = 'suggest-line-main';
+    const mainText = (r["SEDE"] || r["INSTITUCION"]);
+    mainLine.appendChild(buildHighlightedFragment(mainText, query));
+
+    // Línea Secundaria: Detalles
+    const subLine = document.createElement('span');
+    subLine.className = 'suggest-line-sub';
+    const details = [r["MUNICIPIO"], r["COD_SEDE_DANE"] ? 'Sede:'+r["COD_SEDE_DANE"] : '', r["COD_IE_DANE"] ? 'IE:'+r["COD_IE_DANE"] : ''].filter(Boolean).join(' • ');
+    subLine.appendChild(buildHighlightedFragment(details, query));
+
+    div.appendChild(mainLine);
+    div.appendChild(subLine);
+
+    div.onclick = () => {
+      selectResultLocal(r);
+      sug1.style.display = 'none';
+      inp1.value = mainText;
+    };
+    sug1.appendChild(div);
+  });
+}
+
+// Render Suggestion 2 (Categorías)
+function renderSuggestions2(results, query){
+  sug2.innerHTML = '';
+  if(results.length === 0){ sug2.style.display='none'; return; }
+  sug2.style.display = 'block';
+
+  results.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'suggest-item';
+
+    const mainLine = document.createElement('span');
+    mainLine.className = 'suggest-line-main';
+    mainLine.appendChild(buildHighlightedFragment(item.header, query));
+
+    const subLine = document.createElement('span');
+    subLine.className = 'suggest-line-sub';
+    subLine.textContent = `${item.count} sedes con este dato`;
+
+    div.appendChild(mainLine);
+    div.appendChild(subLine);
+
+    div.onclick = () => {
+      selectResultCategory(item.header);
+      sug2.style.display = 'none';
+      inp2.value = item.header;
+    };
+    sug2.appendChild(div);
+  });
+}
+
+/* ================= ACCIONES AL SELECCIONAR ================= */
+
+function selectResultLocal(row){
+  filtered = [row];
+  activeCategoryHeaders = []; // Reset cols extras
+  showTableMode();
+  renderTable();
+  updateStatus(`1 Sede seleccionada: ${row["SEDE"]}`);
+}
+
+function selectResultCategory(headerName){
+  // Filtrar todas las filas que tengan dato en esa columna
+  filtered = rows.filter(r => r[headerName] && r[headerName].trim() !== '');
+  // Agregar la columna a la vista
+  activeCategoryHeaders = [headerName];
+  showTableMode();
+  renderTable();
+  updateStatus(`Filtrado por: ${headerName} (${filtered.length} resultados)`);
+}
+
+function resetView(){
+  filtered = rows;
+  activeCategoryHeaders = [];
+  inp1.value = '';
+  inp2.value = '';
+  document.getElementById('summary-view').style.display = 'block';
+  document.getElementById('table-container').style.display = 'none';
+  document.getElementById('btn-reset').style.display = 'none';
+  document.getElementById('resultsCount').textContent = rows.length;
+  document.getElementById('activeFilters').textContent = '';
+
+  renderCharts();
+}
+
+function showTableMode(){
+  document.getElementById('summary-view').style.display = 'none';
+  document.getElementById('table-container').style.display = 'block';
+  document.getElementById('btn-reset').style.display = 'inline-block';
+}
+
+function updateStatus(msg){
+  document.getElementById('resultsCount').textContent = filtered.length;
+  document.getElementById('activeFilters').innerHTML = `<span class="meta-tag">${msg}</span>`;
+}
+
+/* ================= RENDER TABLA ================= */
+function renderTable(){
+  const tbl = document.getElementById('data-table');
+  const thead = tbl.querySelector('thead');
+  const tbody = tbl.querySelector('tbody');
+  thead.innerHTML = '';
+  tbody.innerHTML = '';
+
+  // Columnas base
+  const baseCols = ["MUNICIPIO", "INSTITUCION", "SEDE", "COD_SEDE_DANE"];
+  // Columnas totales a mostrar
+  const colsToShow = [...baseCols, ...activeCategoryHeaders];
+
+  // Header
+  const trH = document.createElement('tr');
+  colsToShow.forEach(c => {
+    const th = document.createElement('th');
+    th.textContent = c;
+    trH.appendChild(th);
+  });
+  thead.appendChild(trH);
+
+  // Body (Limite 500 para rendimiento)
+  const limit = 500;
+  const dataToShow = filtered.slice(0, limit);
+
+  dataToShow.forEach(r => {
+    const tr = document.createElement('tr');
+    colsToShow.forEach(c => {
+      const td = document.createElement('td');
+      td.textContent = r[c] || '-'; // Usar nombre de columna original
+      if(activeCategoryHeaders.includes(c)) td.style.fontWeight = 'bold'; // Resaltar dato clave
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+
+  if(filtered.length > limit){
+    const tr = document.createElement('tr');
+    const td = document.createElement('td');
+    td.colSpan = colsToShow.length;
+    td.textContent = `... y ${filtered.length - limit} más. Refina tu búsqueda.`;
+    td.style.textAlign = 'center';
+    td.style.color = '#888';
+    tr.appendChild(td);
+    tbody.appendChild(tr);
+  }
+}
+
+/* ================= GRÁFICOS (Chart.js) ================= */
+function renderCharts(){
+  // Preparar datos desde 'rows'
+  if(!rows.length) return;
+
+  // Grafico 1: Sedes por Municipio
+  const munCount = {};
+  rows.forEach(r => {
+    const m = r["MUNICIPIO"] || "Indefinido";
+    munCount[m] = (munCount[m]||0) + 1;
+  });
+  const labels1 = Object.keys(munCount).sort();
+  const data1 = labels1.map(k => munCount[k]);
+
+  const ctx1 = document.getElementById('chart1');
+  if(chartInstance1) chartInstance1.destroy();
+  chartInstance1 = new Chart(ctx1, {
+    type: 'bar',
+    data: {
+      labels: labels1,
+      datasets: [{ label: 'N° Sedes', data: data1, backgroundColor: '#1B66CA', borderRadius:4 }]
+    },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}} }
+  });
+
+  // Grafico 2: Top Proyectos (Contar "SI" o datos en columnas indexables)
+  // Aproximación rápida: ver llenado de algunas cols importantes
+  const projectCounts = [];
+  // Tomamos un subset de headers interesantes para no saturar
+  const sampleHeaders = CAJON2_INDEXABLE_HEADERS.slice(0, 10);
+  sampleHeaders.forEach(h => {
+    let c = 0;
+    rows.forEach(r => { if(r[h] && r[h].length > 0) c++; });
+    projectCounts.push({label: h, val: c});
+  });
+  projectCounts.sort((a,b)=>b.val - a.val); // Top mayores
+
+  const ctx2 = document.getElementById('chart2');
+  if(chartInstance2) chartInstance2.destroy();
+  chartInstance2 = new Chart(ctx2, {
+    type: 'doughnut',
+    data: {
+      labels: projectCounts.map(x=>x.label),
+      datasets: [{
+        data: projectCounts.map(x=>x.val),
+        backgroundColor: ['#1B66CA','#4ea8ff','#FFF59D','#ff8a65','#66bb6a','#d4e157']
+      }]
+    },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'right'}} }
+  });
+}
+
+// Iniciar aplicación
+initApp();
+
+// Cerrar sugerencias al clic fuera
+document.addEventListener('click', (e) => {
+  if(!e.target.closest('#search1') && !e.target.closest('#suggestions1')) sug1.style.display='none';
+  if(!e.target.closest('#search2') && !e.target.closest('#suggestions2')) sug2.style.display='none';
+});
+
+</script>
+</body>
+</html>
