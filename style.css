@@ -1,11 +1,13 @@
 /* style.css */
 :root {
-  --bg: #f5f7fb;
-  --card: #fff;
+  --bg: #f5f7fb;      /* Fondo Gris azulado */
+  --card: #ffffff;    /* Tarjetas */
   --muted: #6b7280;
-  --accent: #0b5cff;
+  --primary: #336699; /* Azul Institucional */
+  --secondary: #F7994B; /* Naranja */
+  --tertiary: #339966;  /* Verde */
   --radius: 12px;
-  --shadow: 0 8px 24px rgba(15, 20, 30, 0.06);
+  --shadow: 0 6px 18px rgba(51, 102, 153, 0.1); /* Sombra con toque azul */
 }
 
 body {
