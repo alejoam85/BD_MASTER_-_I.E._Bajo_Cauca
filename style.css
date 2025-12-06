@@ -1,24 +1,22 @@
-/* style.css - VERSIÓN MEJORADA (Colores Institucionales + Layout 50/50) */
+/* style.css - VERSIÓN FINAL (Mejoras Usabilidad) */
 
 :root {
-  /* TUS NUEVOS COLORES EXACTOS */
-  --bg: #f5f7fb;       /* Fondo Gris azulado muy claro */
-  --card: #ffffff;     /* Tarjetas blancas */
-  --muted: #6b7280;    /* Textos secundarios */
+  --bg: #f5f7fb;
+  --card: #ffffff;
+  --muted: #6b7280;
   --primary: #336699;  /* Azul Institucional */
   --secondary: #F7994B;/* Naranja */
-  --tertiary: #339966; /* Verde ligeramente azulado */
+  --tertiary: #339966; /* Verde */
   --radius: 12px;
-  --shadow: 0 6px 18px rgba(51, 102, 153, 0.15); /* Sombra suave con tinte azul */
+  --shadow: 0 6px 18px rgba(51, 102, 153, 0.15);
 }
 
 body {
-  /* TIPOGRAFÍA Y TAMAÑO */
   font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
   margin: 0;
   background: var(--bg);
   color: #111;
-  font-size: 12px; /* Letra mediana/pequeña solicitada */
+  font-size: 12px;
 }
 
 .wrap {
@@ -27,7 +25,7 @@ body {
   padding: 12px;
 }
 
-/* Header */
+/* HEADER */
 header {
   display: flex;
   gap: 12px;
@@ -39,7 +37,6 @@ header {
   width: 56px;
   height: 56px;
   border-radius: 12px;
-  /* Degradado usando tu color primario */
   background: linear-gradient(135deg, var(--primary), #4ea8ff);
   display: flex;
   align-items: center;
@@ -49,14 +46,13 @@ header {
   font-size: 16px;
 }
 
-/* ESTRUCTURA PRINCIPAL (LAYOUT) */
+/* LAYOUT PRINCIPAL */
 .grid {
   display: flex;
-  flex-direction: column; /* Cambiado a COLUMNA para que los buscadores queden arriba */
+  flex-direction: column;
   gap: 20px;
 }
 
-/* TARJETAS */
 .card {
   background: var(--card);
   padding: 16px;
@@ -64,16 +60,14 @@ header {
   box-shadow: var(--shadow);
 }
 
-/* CONTROLES (CAJAS DE BÚSQUEDA) */
-/* Aquí aplicamos la división 50% y 50% */
+/* CAJAS DE BÚSQUEDA (50% / 50%) */
 .controls {
   display: grid;
-  grid-template-columns: 1fr 1fr; /* Dos columnas iguales */
-  gap: 25px; /* Espacio entre la caja 1 y caja 2 */
+  grid-template-columns: 1fr 1fr;
+  gap: 25px;
   align-items: start;
 }
 
-/* Ajuste para que los elementos dentro de cada control se vean ordenados */
 .control-group {
   display: flex;
   flex-direction: column;
@@ -82,13 +76,15 @@ header {
 
 label.small {
   font-size: 12px;
-  font-weight: 600; /* Un poco más negrita para resaltar */
-  color: var(--primary); /* Título de la caja en Azul Institucional */
+  font-weight: 700;
+  color: var(--primary);
   display: block;
   margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-/* INPUTS Y BOTONES */
+/* INPUTS */
 input[type="search"],
 select,
 button {
@@ -96,10 +92,10 @@ button {
   border-radius: 8px;
   border: 1px solid #d1d5db;
   background: #fff;
-  font-size: 12px; /* Letra 12px */
+  font-size: 12px;
   font-family: inherit;
-  width: 100%; /* Asegura que llenen su espacio */
-  box-sizing: border-box; /* Para que el padding no rompa el ancho */
+  width: 100%;
+  box-sizing: border-box;
 }
 
 input[type="search"]:focus {
@@ -112,14 +108,14 @@ input[type="search"]:focus {
   display: flex;
   gap: 8px;
   align-items: center;
-  position: relative; /* Para las sugerencias */
+  position: relative;
 }
 
 /* BOTONES */
 button {
   cursor: pointer;
   transition: all 0.2s;
-  width: auto; /* Los botones no necesitan ser full width */
+  width: auto;
 }
 
 button.primary {
@@ -128,23 +124,36 @@ button.primary {
   border: none;
   font-weight: 600;
 }
-
-button.primary:hover {
-  filter: brightness(1.1);
-}
+button.primary:hover { filter: brightness(1.1); }
 
 button.ghost {
   background: transparent;
   border: 1px solid #e5e7eb;
   color: var(--muted);
+  width: 34px; /* Cuadrado para la X */
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
 }
-
 button.ghost:hover {
-  border-color: var(--secondary);
-  color: var(--secondary);
+  background: #fee2e2;
+  color: #ef4444;
+  border-color: #fca5a5;
 }
 
-/* SUGERENCIAS (DROPDOWN) */
+/* Botón "Volver al Inicio" */
+#btnHome {
+  background: var(--secondary);
+  color: #fff;
+  border: none;
+  font-weight: 600;
+  display: none; /* Se muestra solo al buscar */
+}
+#btnHome:hover { filter: brightness(1.05); }
+
+/* SUGERENCIAS */
 .suggest-list {
   position: absolute;
   top: 100%;
@@ -167,36 +176,16 @@ button.ghost:hover {
   font-size: 12px;
   cursor: pointer;
 }
-
-.suggest-item:last-child {
-  border-bottom: none;
+.suggest-item:hover, .suggest-item.active {
+  background: #f0f7ff;
 }
 
-.suggest-item:hover {
-  background: #f0f7ff; /* Un azul muy clarito al pasar el mouse */
-}
+.suggest-line-main { font-weight: 700; color: var(--primary); margin-bottom: 2px; }
+.suggest-line-sub { color: var(--muted); }
+strong { background: #fff3cd; color: #111; padding: 0 2px; }
 
-.suggest-line-main {
-  font-weight: 700;
-  color: var(--primary);
-  margin-bottom: 2px;
-}
-
-.suggest-line-sub {
-  color: var(--muted);
-}
-
-strong {
-  background: #fff3cd; /* Resaltado amarillo suave */
-  color: #111;
-  padding: 0 2px;
-}
-
-/* TABLA DE RESULTADOS */
-.table-container {
-  overflow-x: auto;
-  margin-top: 15px;
-}
+/* TABLA */
+.table-container { overflow-x: auto; margin-top: 15px; }
 
 table {
   border-collapse: collapse;
@@ -212,33 +201,24 @@ thead th {
   text-align: left;
   border-bottom: 2px solid #e5e7eb;
   font-weight: 700;
-  text-transform: uppercase;
   font-size: 11px;
 }
 
 tbody td {
   padding: 10px 12px;
   border-bottom: 1px solid #f3f4f6;
+  color: #333;
 }
+tbody tr { cursor: pointer; transition: background 0.1s; }
+tbody tr:hover { background: #e0f2fe !important; }
 
-tbody tr:hover {
-  background: #f9fafb;
-}
-
-/* Mensajes meta y KPIs */
-.meta {
-  font-size: 11px;
-  color: var(--muted);
-  font-style: italic;
-}
-
+/* KPIs */
 .kpi-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 15px;
   margin-top: 10px;
 }
-
 .kpi {
   padding: 12px;
   border-radius: 8px;
@@ -246,31 +226,27 @@ tbody tr:hover {
   background: #fff;
   text-align: center;
 }
-
 .kpi-val {
   font-size: 18px;
   font-weight: 800;
-  color: var(--secondary); /* KPI en naranja */
+  color: var(--secondary);
   margin-top: 4px;
 }
-
-.results-header {
-  font-weight: 700;
-  color: var(--primary);
-}
+.results-header { font-weight: 700; color: var(--primary); }
+.meta { font-size: 11px; color: var(--muted); font-style: italic; }
+.meta-sm { font-size: 11px; color: var(--muted); }
 
 /* MODAL */
 .modal-back {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.6);
   display: none;
   align-items: center;
   justify-content: center;
   z-index: 1000;
   padding: 20px;
 }
-
 .modal {
   background: #fff;
   border-radius: var(--radius);
@@ -278,18 +254,11 @@ tbody tr:hover {
   width: 100%;
   max-height: 85vh;
   overflow-y: auto;
-  padding: 20px;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+  padding: 25px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.3);
 }
 
-/* RESPONSIVE (MÓVIL) */
 @media (max-width: 768px) {
-  .controls {
-    grid-template-columns: 1fr; /* En celular vuelve a ser 1 sola columna */
-  }
-  
-  header {
-    flex-direction: column;
-    text-align: center;
-  }
+  .controls { grid-template-columns: 1fr; }
+  header { flex-direction: column; text-align: center; }
 }
