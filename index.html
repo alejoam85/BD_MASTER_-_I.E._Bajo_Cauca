@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Visor Inteligente de Sedes - BD_MASTER</title>
+
+  <!-- Inter font -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Main CSS -->
+  <link rel="stylesheet" href="css/main.css">
+
+  <!-- Chart.js (UMD build) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <header class="app-header" role="banner">
+    <div class="container header-inner">
+      <div class="brand">
+        <div class="logo">VC</div>
+        <div>
+          <h1>Visor Inteligente de Sedes</h1>
+          <p class="subtitle">BD_MASTER_ - I.E. Bajo Cauca</p>
+        </div>
+      </div>
+      <div class="status">Estado: <strong id="conn-status">cargando...</strong></div>
+    </div>
+  </header>
+
+  <main class="container" role="main">
+    <section class="top-section" aria-label="Buscadores">
+      <div class="search-box" id="box-localizador">
+        <div class="search-header">
+          <h3>LOCALIZADOR inteligente de I.E</h3>
+          <div class="hint">Busca por SEDE / INSTITUCIÓN / MUNICIPIO / Códigos</div>
+        </div>
+        <div class="search-input">
+          <input id="search1" type="text" placeholder="Empieza a escribir (mín 2 caracteres)..." autocomplete="off" />
+        </div>
+        <div id="suggestions1" class="suggestions" role="listbox" aria-label="Sugerencias localizador"></div>
+      </div>
+
+      <div class="search-box" id="box-categorizacion">
+        <div class="search-header">
+          <h3>CATEGORIZACIÓN de I.E y SEDES</h3>
+          <div class="hint">Busca por encabezados: NIDO, ESC_VIDA, BATUTA, PASC, etc.</div>
+        </div>
+        <div class="search-input">
+          <input id="search2" type="text" placeholder="Buscar columnas/encabezados (mín 2 caracteres)..." autocomplete="off" />
+        </div>
+        <div id="suggestions2" class="suggestions" role="listbox" aria-label="Sugerencias categorización"></div>
+      </div>
+    </section>
+
+    <section class="results-area" aria-live="polite">
+      <div class="results-title">Resultados (<span id="results-count">0</span>)</div>
+      <div class="results-card">
+        <p class="results-info" id="results-info">La vista inicial muestra resumen. Use los buscadores para filtrar.</p>
+
+        <div id="summary-charts">
+          <div class="charts-grid">
+            <div class="chart-card">
+              <h3>Gráfica 1 – Comparativo por Municipio</h3>
+              <canvas id="chart1" aria-label="Gráfica 1" role="img"></canvas>
+            </div>
+            <div class="chart-card">
+              <h3>Gráfica 2 – Top 12 Sedes por Proyectos</h3>
+              <canvas id="chart2" aria-label="Gráfica 2" role="img"></canvas>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <section id="table-container" class="hidden" aria-label="Tabla de resultados">
+      <div class="results-card small-pad">
+        <div style="overflow:auto;">
+          <table id="data-table" role="table" aria-label="Datos de sedes"></table>
+        </div>
+        <div style="margin-top:8px;">
+          <button id="table-more-btn" class="btn hidden">Mostrar más</button>
+          <button id="btn-clear" class="btn">Limpiar filtros</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Core scripts (orden importante) -->
+  <script src="js/dataset-loader.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/search-localizador.js"></script>
+  <script src="js/search-categorizacion.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/ui.js"></script>
+</body>
+</html>
