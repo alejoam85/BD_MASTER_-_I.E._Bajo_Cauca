@@ -11,10 +11,11 @@
 }
 
 body {
-  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
   margin: 0;
   background: var(--bg);
   color: #111;
+  font-size: 12px; /* AQUI ESTA EL CAMBIO A LETRA MEDIANA/PEQUEÑA */
 }
 
 .wrap {
@@ -52,10 +53,11 @@ h1 {
   color: var(--muted);
 }
 
+/* Reemplaza esto para cambiar el diseño a horizontal arriba */
 .grid {
-  display: grid;
-  grid-template-columns: 360px 1fr;
-  gap: 12px;
+  display: flex;
+  flex-direction: column; /* Ahora los elementos van uno debajo del otro */
+  gap: 15px;
 }
 
 .card {
@@ -65,10 +67,19 @@ h1 {
   box-shadow: var(--shadow);
 }
 
+/* Esto divide las cajas de búsqueda en 2 columnas iguales */
 .controls {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* 50% y 50% */
+  gap: 20px;
+  align-items: start;
+}
+
+/* Ajuste para móviles: que vuelvan a ser 1 sola columna */
+@media (max-width: 768px) {
+  .controls {
+    grid-template-columns: 1fr;
+  }
 }
 
 label.small {
