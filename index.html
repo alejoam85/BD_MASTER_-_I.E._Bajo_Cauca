@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Visor BD_MASTER - I.E. Bajo Cauca</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <style>
+    :root{
+      --bg:#f5f7fb; --card:#fff; --muted:#6b7280; --accent:#0b5cff; --radius:12px;
+      --shadow:0 8px 24px rgba(15,20,30,0.06);
+    }
+    body{font-family:Inter, system-ui, sans-serif; margin:0; background:var(--bg); color:#111;}
+    .wrap{max-width:1200px;margin:18px auto;padding:12px;}
+    
+    /* Header */
+    header{display:flex;gap:12px;align-items:center;margin-bottom:12px;}
+    .logo{width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,#0b5cff,#4ea8ff);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;}
+    h1{font-size:18px;margin:0;}
+    .small{font-size:13px;color:var(--muted);font-weight:400;}
+
+    /* Buscadores */
+    .search-grid{display:grid;grid-template-columns:1.5fr 1fr;gap:12px;margin-bottom:20px;}
+    .search-card{background:var(--card);padding:14px;border-radius:var(--radius);box-shadow:var(--shadow);position:relative;}
+    .search-card h3{margin:0 0 6px 0;font-size:14px;color:#333;}
+    input{width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;box-sizing:border-box;outline:none;transition:border-color .2s;}
+    input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(11,92,255,0.1);}
+    
+    /* Sugerencias */
+    .sug-list{position:absolute;top:100%;left:0;right:0;background:#fff;z-index:99;border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,0.15);max-height:350px;overflow-y:auto;display:none;margin-top:6px;border:1px solid #eee;}
+    .sug-item{padding:10px 12px;border-bottom:1px solid #f0f0f0;cursor:pointer;}
+    .sug-item:hover{background:#f4f8ff;}
+    .sug-main{font-weight:600;font-size:14px;color:#0f172a;display:block;}
+    .sug-sub{font-size:12px;color:#64748b;display:block;margin-top:2px;}
+    strong{background:#fff9c4;color:#333;padding:0 2px;border-radius:2px;}
+
+    /* Resultados */
+    .res-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+    .btn-reset{background:#fff;border:1px solid #ccc;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:12px;}
+    
+    /* Tabla */
+    .table-wrap{overflow-x:auto;background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);}
+    table{width:100%;border-collapse:collapse;font-size:13px;min-width:800px;}
+    th,td{padding:10px 14px;text-align:left;border-bottom:1px solid #eee;}
+    th{background:#f8fafc;font-weight:600;color:#475569;position:sticky;top:0;}
+    tr:hover{background:#f8fafc;}
+
+    /* Graficos (Summary Area) */
+    #summaryArea{display:block;} /* Visible por defecto */
+    .charts-row{display:grid;grid-template-columns:2fr 1fr;gap:16px;}
+    .chart-box{background:#fff;padding:16px;border-radius:var(--radius);box-shadow:var(--shadow);height:260px;position:relative;}
+
+    @media(max-width:768px){
+        .search-grid, .charts-row{grid-template-columns:1fr;}
+        header{flex-direction:row;}
+    }
+  </style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="logo">BD</div>
+    <div>
+      <h1>Visor Inteligente de Sedes</h1>
+      <div class="small" id="statusBadge">Cargando base de datos...</div>
+    </div>
+  </header>
+
+  <div class="search-grid">
+    <div class="search-card">
+      <h3>📍 Localizador de I.E. y Sedes</h3>
+      <input type="text" id="inpLocal" placeholder="Escribe Municipio, Código o Nombre..." autocomplete="off">
+      <div class="sug-list" id="suggestLocal"></div>
+    </div>
+
+    <div class="search-card">
+      <h3>📊 Categorización (Proyectos)</h3>
+      <input type="text" id="inpCat" placeholder="Buscar columna (ej. NIDO, Agua)..." autocomplete="off">
+      <div class="sug-list" id="suggestCat"></div>
+    </div>
+  </div>
+
+  <div class="res-bar">
+    <strong id="countLabel">0 Sedes</strong>
+    <button class="btn-reset" id="btnBack" style="display:none" onclick="resetApp()">⬅ Volver al Resumen</button>
+  </div>
+
+  <div id="summaryArea">
+    <div class="charts-row">
+      <div class="chart-box">
+        <canvas id="chartSedes"></canvas>
+      </div>
+      <div class="chart-box" style="display:flex;align-items:center;justify-content:center;text-align:center;color:#666;font-size:14px;">
+        <div>
+          <strong>Explora los datos</strong><br>
+          Usa los buscadores arriba para filtrar información detallada.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tablaWrapper" class="table-wrap" style="display:none;">
+    <table id="dataTable">
+      <thead></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+/**
+ * LÓGICA DE NEGOCIO - EXTRAÍDA DE "INDEX - CODIGO FUNCIONAL OK"
+ */
+
+// 1. Configuración
+const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRe5o92LzVVZNSuqn2eUpGf3t1nr_rf58V37ypPjGldYnxNg1B9XTrtZCvNSU-VTKdszHXD9WeqE8sk/pub?gid=1700850446&single=true&output=csv";
+
+// Campos donde busca la Caja 1
+const SEARCH_FIELDS = ["MUNICIPIO","COD_IE_DANE","INSTITUCION","COD_SEDE_DANE","SEDE","UBICACION"];
+
+// Encabezados permitidos para la Caja 2
+const CAT_HEADERS = [
+  "2022 ERA","2023 Docentes","2023 Estudiantes","2024 Docentes","2024 Estudiantes","2025 Docentes","2025 Estudiantes",
+  "2022 ESC_VIDA","2023 ESC_VIDA","2024 ESC_VIDA","2025 ESC_VIDA","2024 NIDO","2025 NIDO","BATUTA 2025","ATAL 2025","FCC 2025","PASC 2025",
+  "MAMM 2025","BECA UDEA 2025","PC 2023","PC 2024","Bibliográfica (Dotación)","Deportiva (Dotación)","INFRAEST. Gob",
+  "Legalización Predio Resolución de sana posesión","Bienestar Maestro","SENA (Oferta)","COMFAMA inspiración","AGUA (Alianza por el Agua)",
+  "Agua Fund.EPM","Agua potable","Conectividad","Embellecimiento Escuelas"
+];
+
+// Variables Globales
+let allRows = [];
+let filteredRows = [];
+let activeCols = []; // Columnas extra a mostrar
+let showTable = false;
+let chartInstance = null;
+
+// 2. Inicialización
+window.addEventListener('DOMContentLoaded', init);
+
+function init(){
+  Papa.parse(CSV_URL, {
+    download: true,
+    header: true, // Importante: PapaParse lee la primera fila como keys
+    skipEmptyLines: true,
+    complete: (res) => {
+      allRows = res.data; // Array de objetos
+      document.getElementById('statusBadge').textContent = "Datos actualizados • " + allRows.length + " registros";
+      document.getElementById('statusBadge').style.color = "green";
+      resetApp();
+    },
+    error: (err) => {
+      document.getElementById('statusBadge').textContent = "Error cargando datos";
+      console.error(err);
+    }
+  });
+}
+
+// 3. Normalización de Texto (Para búsquedas insensibles a tildes/mayúsculas)
+function normalize(str){
+  if(!str) return "";
+  return str.toString().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+// 4. Lógica de Búsqueda (Caja 1 - Localizador)
+const inpLocal = document.getElementById('inpLocal');
+const sugLocal = document.getElementById('suggestLocal');
+
+inpLocal.addEventListener('input', (e) => {
+  const val = e.target.value;
+  if(val.length < 2) { sugLocal.style.display = 'none'; return; }
+  
+  const q = normalize(val);
+  const candidates = [];
+
+  // Buscar en las filas
+  allRows.forEach(row => {
+    let score = -1;
+    // Preferencia: Comienza con > Contiene
+    for(let field of SEARCH_FIELDS){
+      const txt = normalize(row[field]);
+      if(txt.startsWith(q)) { score = 10; break; } // Alta prioridad
+      if(txt.includes(q) && score < 5) { score = 5; } // Baja prioridad
+    }
+    if(score > 0) candidates.push({row, score});
+  });
+
+  // Ordenar y cortar
+  candidates.sort((a,b) => b.score - a.score);
+  renderSuggestionsLocal(candidates.slice(0, 50), val);
+});
+
+function renderSuggestionsLocal(list, query){
+  sugLocal.innerHTML = "";
+  if(list.length === 0){ sugLocal.style.display='none'; return; }
+  sugLocal.style.display='block';
+
+  list.forEach(item => {
+    const r = item.row;
+    const div = document.createElement('div');
+    div.className = 'sug-item';
+    div.innerHTML = `
+      <span class="sug-main">${highlight(r.SEDE || r.INSTITUCION, query)}</span>
+      <span class="sug-sub">${r.MUNICIPIO} • ${r.COD_SEDE_DANE || 'Sin código'}</span>
+    `;
+    div.onclick = () => {
+      loadSingleResult(r);
+      sugLocal.style.display='none';
+      inpLocal.value = "";
+    };
+    sugLocal.appendChild(div);
+  });
+}
+
+// 5. Lógica de Categorización (Caja 2 - Headers)
+const inpCat = document.getElementById('inpCat');
+const sugCat = document.getElementById('suggestCat');
+
+inpCat.addEventListener('input', (e) => {
+  const val = e.target.value;
+  if(val.length < 1) { sugCat.style.display = 'none'; return; }
+  
+  const q = normalize(val);
+  // Filtrar headers permitidos que coincidan
+  const matches = CAT_HEADERS.filter(h => normalize(h).includes(q));
+  
+  // Calcular conteos para esos headers
+  const results = matches.map(h => {
+    const count = allRows.filter(r => r[h] && r[h].trim() !== "").length;
+    return { header: h, count: count };
+  }).filter(x => x.count > 0).sort((a,b) => b.count - a.count);
+
+  renderSuggestionsCat(results, val);
+});
+
+function renderSuggestionsCat(list, query){
+  sugCat.innerHTML = "";
+  if(list.length === 0){ sugCat.style.display='none'; return; }
+  sugCat.style.display='block';
+
+  list.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'sug-item';
+    div.innerHTML = `
+      <span class="sug-main">${highlight(item.header, query)}</span>
+      <span class="sug-sub">${item.count} sedes tienen este dato</span>
+    `;
+    div.onclick = () => {
+      loadCategoryResult(item.header);
+      sugCat.style.display='none';
+      inpCat.value = "";
+    };
+    sugCat.appendChild(div);
+  });
+}
+
+// Helper: Resaltar texto
+function highlight(text, query){
+  if(!text) return "";
+  const normText = normalize(text);
+  const normQuery = normalize(query);
+  const idx = normText.indexOf(normQuery);
+  if(idx === -1) return text;
+  return text.substring(0, idx) + "<strong>" + text.substring(idx, idx + query.length) + "</strong>" + text.substring(idx + query.length);
+}
+
+// 6. Acciones de Selección
+function loadSingleResult(row){
+  filteredRows = [row];
+  activeCols = []; // Sin columnas extra, o las básicas
+  showTable = true;
+  updateUI();
+}
+
+function loadCategoryResult(header){
+  // Filtrar filas que tengan algo en esa columna
+  filteredRows = allRows.filter(r => r[header] && r[header].trim() !== "");
+  activeCols = [header]; // Mostrar esta columna
+  showTable = true;
+  updateUI();
+}
+
+function resetApp(){
+  filteredRows = allRows;
+  activeCols = [];
+  showTable = false;
+  inpLocal.value = "";
+  inpCat.value = "";
+  updateUI();
+}
+
+// 7. Renderizado UI (Tabla y Gráficos)
+function updateUI(){
+  const countEl = document.getElementById('countLabel');
+  countEl.textContent = filteredRows.length + " Sedes";
+
+  const summ = document.getElementById('summaryArea');
+  const tabWrap = document.getElementById('tablaWrapper');
+  const btnBack = document.getElementById('btnBack');
+
+  if(showTable){
+    // Modo Tabla
+    summ.style.display = 'none';
+    tabWrap.style.display = 'block';
+    btnBack.style.display = 'inline-block';
+    renderTable();
+  } else {
+    // Modo Resumen
+    summ.style.display = 'block';
+    tabWrap.style.display = 'none';
+    btnBack.style.display = 'none';
+    renderCharts();
+  }
+}
+
+function renderTable(){
+  const thead = document.querySelector('#dataTable thead');
+  const tbody = document.querySelector('#dataTable tbody');
+  thead.innerHTML = "";
+  tbody.innerHTML = "";
+
+  // Columnas a mostrar
+  const baseCols = ["MUNICIPIO", "INSTITUCION", "SEDE", "COD_SEDE_DANE"];
+  const finalCols = [...baseCols, ...activeCols];
+
+  // Header
+  const trH = document.createElement('tr');
+  finalCols.forEach(c => {
+    const th = document.createElement('th');
+    th.textContent = c;
+    trH.appendChild(th);
+  });
+  thead.appendChild(trH);
+
+  // Body (Limitamos a 200 filas para no congelar el navegador si son muchas)
+  const limit = 200;
+  filteredRows.slice(0, limit).forEach(r => {
+    const tr = document.createElement('tr');
+    finalCols.forEach(c => {
+      const td = document.createElement('td');
+      td.textContent = r[c] || "";
+      if(activeCols.includes(c)) td.style.fontWeight = "bold"; // Resaltar columna filtrada
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+}
+
+function renderCharts(){
+  if(!allRows.length) return;
+  
+  // Gráfico simple: Conteo por Municipio
+  const counts = {};
+  allRows.forEach(r => {
+    const m = r.MUNICIPIO || "Sin Dato";
+    counts[m] = (counts[m] || 0) + 1;
+  });
+  
+  const labels = Object.keys(counts).sort();
+  const data = labels.map(k => counts[k]);
+
+  const ctx = document.getElementById('chartSedes');
+  if(chartInstance) chartInstance.destroy();
+  
+  chartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Número de Sedes',
+        data: data,
+        backgroundColor: '#0b5cff',
+        borderRadius: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: {display:false} }
+    }
+  });
+}
+</script>
+
+</body>
+</html>
