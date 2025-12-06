@@ -6,7 +6,6 @@
   <title>Visor de Sedes Educativas y Proyectos</title>
   
   <link rel="stylesheet" href="style.css">
-
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
@@ -20,11 +19,9 @@
       <div class="logo">BD</div>
       <div>
         <h1 style="color: var(--primary); font-size: 20px; line-height: 1.2;">VISOR DE SEDES EDUCATIVAS Y PROYECTOS</h1>
-        
         <div class="small" style="font-size:13px; margin-top:4px;">
             Base de dato de las Instituciones Educativas y proyectos de la región del Bajo Cauca
         </div>
-        
         <div class="small" style="color: var(--tertiary); font-weight: 700; margin-top: 2px;">
             Alianza por la Educación. La Fundación de Mineros - Sin Fronteras
         </div>
@@ -36,25 +33,21 @@
         <div class="controls">
 
           <div class="control-group">
-            <label class="small">LOCALIZADOR INTELIGENTE</label>
+            <label class="small">SEDES Educativas</label>
             <div class="row suggestions">
-              <input id="searchLocal" type="search" placeholder="Buscar sede, institución, municipio o código DANE..." autocomplete="off"/>
-              <button id="clearLocal" class="ghost" title="Limpiar búsqueda">✕</button>
-              
+              <input id="searchLocal" type="search" placeholder="Buscar sede, municipio, código..." autocomplete="off"/>
+              <button id="clearLocal" class="ghost" title="Limpiar y volver al inicio">✕</button>
               <div id="suggestLocal" class="suggest-list" style="display:none" role="listbox"></div>
             </div>
-            <div class="meta" style="margin-top:4px">Ejemplo: "Tarazá", "105", "El Doce"...</div>
           </div>
 
           <div class="control-group">
-            <label class="small">CATEGORIZACIÓN POR PROYECTOS</label>
+            <label class="small">PROYECTOS y Categorización</label>
             <div class="row suggestions">
-              <input id="searchCategory" type="search" placeholder="Buscar encabezado (ej. NIDO, Agua, Conectividad)..." autocomplete="off"/>
-              <button id="clearCat" class="ghost" title="Limpiar filtro">✕</button>
-              
+              <input id="searchCategory" type="search" placeholder="Buscar proyecto (ej. NIDO, Agua)..." autocomplete="off"/>
+              <button id="clearCat" class="ghost" title="Limpiar y volver al inicio">✕</button>
               <div id="suggestCat" class="suggest-list" style="display:none" role="listbox"></div>
             </div>
-            <div class="meta" style="margin-top:4px">Localiza columnas específicas y filtra quienes tienen datos.</div>
           </div>
 
         </div>
@@ -63,15 +56,13 @@
         
         <div style="display:flex; gap: 15px; align-items:center; flex-wrap:wrap;">
           <div style="display:flex; align-items:center; gap:8px;">
-            <label class="small" style="margin:0">Filtrar por Municipio:</label>
-            <select id="filterMunicipio" style="width: auto; padding: 6px 10px;">
+            <label class="small" style="margin:0">Filtro Municipio:</label>
+            <select id="filterMunicipio" style="width: auto; padding: 6px 10px; min-width: 150px;">
               <option value="">— Todos —</option>
             </select>
           </div>
-          
           <div style="display:flex; gap:8px; margin-left: auto;">
-            <button id="applyFilters" class="primary">Aplicar Filtros</button>
-            <button id="resetFilters" class="ghost">Restablecer Todo</button>
+            <button id="applyFilters" class="primary">Aplicar</button>
           </div>
         </div>
       </aside>
@@ -79,16 +70,18 @@
       <main class="card">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
           <div>
-            <div class="results-header" style="font-size:14px;">Resultados encontrados: <span id="resultsCount" style="color:var(--secondary); font-size:16px;">—</span></div>
+            <div class="results-header" style="font-size:14px;">
+                Resultados: <span id="resultsCount" style="color:var(--secondary); font-size:16px;">—</span>
+            </div>
             <div class="meta-sm" id="activeFilters" style="color:var(--primary); font-weight:600;"></div>
           </div>
-          <div class="meta-sm" style="text-align:right;">Datos oficiales actualizados</div>
+          <button id="btnHome">⬅ Volver al inicio</button>
         </div>
 
         <div id="summaryArea">
           <div class="kpi-grid">
             <div class="kpi">
-              <div class="meta">TOTAL GENERAL (Suma)</div>
+              <div class="meta">TOTAL ESTUDIANTES (Suma)</div>
               <div id="kpiTotal" class="kpi-val">—</div>
             </div>
             <div class="kpi">
@@ -96,14 +89,13 @@
               <div id="kpiSedes" class="kpi-val">—</div>
             </div>
           </div>
-          
           <div style="margin-top:20px; height: 200px; position:relative;">
             <canvas id="chartSedes"></canvas>
           </div>
         </div>
 
         <div id="tablaWrapper" class="table-container" style="display:none">
-          <div id="loading" class="meta" style="text-align:center; padding:20px;">Cargando tabla de datos...</div>
+          <div id="loading" class="meta" style="text-align:center; padding:20px;">Cargando tabla...</div>
           <table id="dataTable"></table>
         </div>
       </main>
@@ -112,8 +104,8 @@
     <div id="modalBack" class="modal-back">
       <div class="modal">
         <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:10px; margin-bottom:15px;">
-          <h3 id="modalTitle" style="margin:0; color:var(--primary);">Detalle de la Sede</h3>
-          <button id="closeModal" class="ghost">Cerrar</button>
+          <h3 id="modalTitle" style="margin:0; color:var(--primary);">Detalle Completo</h3>
+          <button id="closeModal" class="ghost" style="width:auto; padding: 4px 10px;">Cerrar</button>
         </div>
         <div id="modalBody"></div>
       </div>
@@ -122,6 +114,5 @@
   </div>
 
   <script src="script.js"></script>
-
 </body>
 </html>
