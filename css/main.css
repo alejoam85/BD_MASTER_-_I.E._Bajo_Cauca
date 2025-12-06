@@ -1,1 +1,58 @@
+:root{
+  --bg:#f5f7fb;
+  --card:#ffffff;
+  --muted:#6b7280;
+  --primary:#1B66CA;
+  --accent:#FFF59D;
+  --radius:10px;
+  --shadow: 0 6px 18px rgba(17,24,39,0.06);
+  --max-width:1280px;
+  --txt-small:12px;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;background:var(--bg);color:#0f172a}
+.app-header{position:sticky;top:0;z-index:1200;backdrop-filter: blur(6px);background:linear-gradient(180deg, rgba(255,255,255,0.95), rgba(255,255,255,0.85));border-bottom:1px solid rgba(15,23,42,0.04);padding:10px 0}
+.header-inner{display:flex;align-items:center;gap:12px;max-width:var(--max-width);margin:0 auto;padding:0 18px}
+.brand{display:flex;gap:12px;align-items:center}
+.logo{width:40px;height:40px;border-radius:8px;background:var(--primary);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700}
+.header-inner h1{margin:0;font-size:16px;color:var(--primary)}
+.subtitle{margin:0;font-size:12px;color:var(--muted)}
+.status{margin-left:auto;font-size:13px;color:var(--muted)}
+.container{max-width:var(--max-width);margin:18px auto;padding:0 18px}
+.top-section{display:flex;gap:16px;align-items:flex-start;margin-bottom:18px}
+.search-box{background:var(--card);border-radius:var(--radius);padding:12px;box-shadow:var(--shadow);width:100%;border:1px solid rgba(15,23,42,0.04)}
+.search-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.search-box h3{margin:0;font-size:13px}
+.hint{font-size:12px;color:var(--muted)}
+.search-input{display:flex;align-items:center;gap:8px;margin-top:8px}
+.search-input input{width:100%;padding:10px 12px;border-radius:8px;border:1px solid rgba(15,23,42,0.06);font-size:14px;outline:none}
+.search-input input:focus{box-shadow:0 6px 18px rgba(27,102,202,0.08);border-color:var(--primary)}
+.suggestions{display:none;margin-top:8px;background:linear-gradient(180deg,#fff,#fbfdff);border:1px solid rgba(15,23,42,0.05);border-radius:8px;box-shadow:0 6px 18px rgba(2,6,23,0.06);max-height:220px;overflow:auto;padding:6px;font-size:var(--txt-small)}
+.suggestion-item{padding:8px 10px;border-radius:6px;margin-bottom:6px;cursor:pointer;transition:background .08s,transform .06s;background:transparent}
+.suggestion-item:hover{background:rgba(27,102,202,0.06);transform:translateY(-1px)}
+.suggestion-item strong{background:linear-gradient(90deg, rgba(255,245,93,0.35), rgba(255,245,93,0.12));padding:0 2px;border-radius:3px;font-weight:700}
+
+.results-area{margin-bottom:14px}
+.results-title{font-size:15px;font-weight:700;margin:0 0 8px 0}
+.results-card{background:var(--card);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);border:1px solid rgba(15,23,42,0.04)}
+.results-info{font-size:13px;color:var(--muted);margin:0}
+.charts-grid{display:grid;grid-template-columns:2fr 1fr;gap:18px;margin-top:12px}
+.chart-card{background:var(--card);border-radius:10px;padding:12px;box-shadow:0 6px 18px rgba(13,24,46,0.04);border:1px solid rgba(15,23,42,0.03);min-height:220px}
+.chart-card h3{margin:0 0 8px 0;font-size:13px}
+
+#table-container{margin-top:14px;overflow:auto;border-radius:10px}
+table{width:100%;border-collapse:collapse;font-size:13px;min-width:900px}
+th,td{padding:8px 10px;text-align:left;border-bottom:1px solid rgba(15,23,42,0.04)}
+th{background:linear-gradient(180deg,#f3f6fb,#fff);position:sticky;top:0;z-index:2;font-weight:600}
+tbody tr:nth-child(odd){background:#fff}
+tbody tr:nth-child(even){background:#fbfdff}
+
+.btn{display:inline-block;padding:8px 12px;border-radius:8px;border:1px solid rgba(15,23,42,0.06);background:#fff;margin-right:8px;cursor:pointer}
+.btn.hidden{display:none}
+.small-pad{padding:8px}
+.hidden{display:none}
+
+/* responsive */
+@media (max-width:900px){.charts-grid{grid-template-columns:1fr}.top-section{flex-direction:column;gap:12px}table{min-width:700px;font-size:12px}header h1{font-size:14px}}
+@media (max-width:520px){.search-box{padding:10px}.search-box h3{font-size:13px}.suggestion-item{font-size:11px;padding:6px}.logo{width:36px;height:36px;font-size:14px}.container{padding:12px}table{min-width:520px;font-size:12px}}
 
