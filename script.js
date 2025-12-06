@@ -488,8 +488,21 @@ function renderTableReset() {
   const visibleCols = baseCols.concat(extra);
 
   const thead = document.createElement('thead'); const trh = document.createElement('tr');
-  visibleCols.forEach(c => { const th = document.createElement('th'); th.textContent = c; trh.appendChild(th); });
-  thead.appendChild(trh); table.appendChild(thead);
+// LÓGICA DE ENMASCARAMIENTO DE TÍTULOS
+  visibleCols.forEach(c => { 
+    const th = document.createElement('th'); 
+    
+    // Aquí cambiamos los nombres visualmente
+    let tituloMostrado = c;
+    if (c === "TOTAL GENERAL") {
+        tituloMostrado = "TOTAL ESTUDIANTES";
+    } else if (c === "INSTITUCION") {
+        tituloMostrado = "INSTITUCIÓN EDUCATIVA";
+    }
+    
+    th.textContent = tituloMostrado; 
+    trh.appendChild(th); 
+  });  thead.appendChild(trh); table.appendChild(thead);
 
   const tbody = document.createElement('tbody');
   const toShow = filtered.slice(0, 2000); 
