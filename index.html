@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Visor BD_MASTER - I.E. Bajo Cauca (LOCALIZADOR + CATEGORIZACIÓN)</title>
+  
+  <link rel="stylesheet" href="style.css">
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="logo">BD</div>
+      <div>
+        <h1>BD_MASTER — I.E. Bajo Cauca</h1>
+        <div class="small">Visor público — LOCALIZADOR & CATEGORIZACIÓN</div>
+      </div>
+    </header>
+
+    <div class="grid">
+      <aside class="card">
+        <div class="controls">
+
+          <div>
+            <label class="small">LOCALIZADOR inteligente de I.E</label>
+            <div class="row suggestions">
+              <input id="searchLocal" type="search" placeholder="Buscar sede, institución, municipio o código DANE..." autocomplete="off"/>
+              <button id="clearLocal" class="ghost">Limpiar</button>
+              <div id="suggestLocal" class="suggest-list" style="display:none" role="listbox" aria-label="Sugerencias localizador"></div>
+            </div>
+          </div>
+
+          <hr style="margin:10px 0">
+
+          <div>
+            <label class="small">CATEGORIZACIÓN de I.E y SEDES</label>
+            <div class="row suggestions">
+              <input id="searchCategory" type="search" placeholder="Buscar encabezado (ej. NIDO, BATUTA 2025, Conectividad)..." autocomplete="off"/>
+              <button id="clearCat" class="ghost">Limpiar</button>
+              <div id="suggestCat" class="suggest-list" style="display:none" role="listbox" aria-label="Sugerencias de encabezado"></div>
+            </div>
+            <div class="meta" style="margin-top:6px">La búsqueda localiza columnas de encabezado y muestra sedes que tienen dato en esa columna.</div>
+          </div>
+
+          <hr style="margin:10px 0">
+
+          <div style="margin-top:8px">
+            <label class="small">Filtros rápidos</label>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div>
+                <label class="small">Municipio</label>
+                <select id="filterMunicipio"><option value="">— Todos —</option></select>
+              </div>
+              <div style="display:flex;gap:8px">
+                <button id="applyFilters" class="primary">Aplicar</button>
+                <button id="resetFilters" class="ghost">Reset</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </aside>
+
+      <main>
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div class="results-header">Resultados: <span id="resultsCount">—</span></div>
+              <div class="meta-sm" id="activeFilters"></div>
+            </div>
+            <div class="meta-sm">Búsqueda múltiple</div>
+          </div>
+
+          <div id="summaryArea" style="margin-top:10px">
+            <div class="kpi-grid">
+              <div class="kpi"><div><div class="meta-sm">Total (suma Total General)</div><div id="kpiTotal" style="font-weight:700;font-size:16px">—</div></div></div>
+              <div class="kpi"><div><div class="meta-sm">Sedes (conteo)</div><div id="kpiSedes" style="font-weight:700;font-size:16px">—</div></div></div>
+            </div>
+            <div style="margin-top:10px">
+              <canvas id="chartSedes" style="width:100%;height:160px"></canvas>
+            </div>
+          </div>
+
+          <div id="tablaWrapper" style="margin-top:10px; display:none">
+            <div id="loading" class="meta">Preparando tabla…</div>
+            <table id="dataTable" style="display:none" aria-describedby="tabla-datos"></table>
+          </div>
+
+        </div>
+      </main>
+    </div>
+
+    <div id="modalBack" class="modal-back">
+      <div class="modal">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <h3 id="modalTitle" style="margin:0">Detalle</h3>
+          <button id="closeModal" class="ghost">Cerrar</button>
+        </div>
+        <div id="modalBody" style="margin-top:10px"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
